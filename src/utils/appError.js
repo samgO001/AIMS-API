@@ -27,6 +27,10 @@ class AppError extends Error {
     return new AppError(message, 409);
   }
 
+  static tooManyRequests(message = 'Demasiadas solicitudes') {
+    return new AppError(message, 429);
+  }
+
   static internal(message = 'Error interno del servidor') {
     return new AppError(message, 500);
   }
