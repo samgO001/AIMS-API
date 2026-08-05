@@ -1,0 +1,294 @@
+### AIMS API - Users Module - Ejemplos de Peticiones
+### Puedes usar este archivo con la extensión REST Client de VS Code
+### o importarlo en Postman/Insomnia
+
+@baseUrl = http://localhost:3000/api/v1
+@adminToken = REEMPLAZAR_CON_TOKEN_ADMIN
+@userToken = REEMPLAZAR_CON_TOKEN_USUARIO
+
+# ─────────────────────────────────────────────
+# HEALTH CHECK
+# ─────────────────────────────────────────────
+
+### Health Check
+GET http://localhost:3000/api/health
+
+
+# ─────────────────────────────────────────────
+# AUTH - REGISTRO E INICIO DE SESIÓN
+# ─────────────────────────────────────────────
+
+### 1. Registrar un Aprendiz (rol por defecto)
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "firstName": "María",
+  "lastName": "García",
+  "email": "maria.garcia@email.com",
+  "password": "MiPassword123",
+  "phone": "+57 300 123 4567"
+}
+
+###
+
+### 2. Registrar un Instructor (requiere ser ADMIN en producción)
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "firstName": "Carlos",
+  "lastName": "Rodríguez",
+  "email": "carlos.rodriguez@email.com",
+  "password": "Instructor123",
+  "role": "INSTRUCTOR",
+  "phone": "+57 310 987 6543"
+}
+
+###
+
+### 3. Registrar un Admin
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "firstName": "Admin",
+  "lastName": "AIMS",
+  "email": "admin@aims.com",
+  "password": "Admin1234",
+  "role": "ADMIN"
+}
+
+###
+
+### 4. Login como Admin (guarda el token en @adminToken)
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@aims.com",
+  "password": "Admin1234"
+}
+
+###
+
+### 5. Login como Usuario normal
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "maria.garcia@email.com",
+  "password": "MiPassword123"
+}
+
+###
+
+### 6. Login - Email inválido (debe retornar 400)
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "no-es-un-email",
+  "password": "MiPassword123"
+}
+
+###
+
+### 7. Login - Credenciales incorrectas (debe retornar 401)
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@aims.com",
+  "password": "ContraseñaIncorrecta1"
+}
+
+
+# ─────────────────────────────────────────────
+# PERFIL - USUARIO AUTENTICADO
+# ─────────────────────────────────────────────
+
+### 8. Obtener mi perfil
+GET {{baseUrl}}/users/profile
+Authorization: Bearer {{userToken}}
+
+###
+
+### 9. Actualizar mi perfil
+PUT {{baseUrl}}/users/profile
+Authorization: Bearer {{userToken}}
+Content-Type: application/json
+
+{
+  "firstName": "María José",
+  "phone": "+57 320 111 2222"
+}
+
+###
+
+### 10. Cambiar contraseña
+PATCH {{baseUrl}}/users/change-password
+Authorization: Bearer {{userToken}}
+Content-Type: application/json
+
+{
+  "currentPassword": "MiPassword123",
+  "newPassword": "NuevaPassword456"
+}
+
+###
+
+### 11. Cambiar contraseña - actual incorrecta (debe retornar 400)
+PATCH {{baseUrl}}/users/change-password
+Authorization: Bearer {{userToken}}
+Content-Type: application/json
+
+{
+  "currentPassword": "ContraseñaMal1",
+  "newPassword": "NuevaPassword456"
+}
+
+###
+
+### 12. Cambiar contraseña - nueva sin mayúscula (debe retornar 400)
+PATCH {{baseUrl}}/users/change-password
+Authorization: Bearer {{userToken}}
+Content-Type: application/json
+
+{
+  "currentPassword": "MiPassword123",
+  "newPassword": "soloMinusculas123"
+}
+
+
+# ─────────────────────────────────────────────
+# ADMIN - GESTIÓN DE USUARIOS
+# ─────────────────────────────────────────────
+
+### 13. Listar todos los usuarios (requiere ADMIN)
+GET {{baseUrl}}/users
+Authorization: Bearer {{adminToken}}
+
+###
+
+### 14. Listar usuarios con paginación
+GET {{baseUrl}}/users?page=1&limit=5
+Authorization: Bearer {{adminToken}}
+
+###
+
+### 15. Filtrar por rol
+GET {{baseUrl}}/users?role=APRENDIZ
+Authorization: Bearer {{adminToken}}
+
+###
+
+### 16. Filtrar usuarios activos
+GET {{baseUrl}}/users?isActive=true
+Authorization: Bearer {{adminToken}}
+
+###
+
+### 17. Buscar por nombre/email
+GET {{baseUrl}}/users?search=maria
+Authorization: Bearer {{adminToken}}
+
+###
+
+### 18. Ordenar por nombre ascendente
+GET {{baseUrl}}/users?sortBy=firstName&order=asc
+Authorization: Bearer {{adminToken}}
+
+###
+
+### 19. Combinación de filtros
+GET {{baseUrl}}/users?role=INSTRUCTOR&isActive=true&page=1&limit=10&sortBy=lastName&order=asc
+Authorization: Bearer {{adminToken}}
+
+###
+
+### 20. Obtener usuario por ID (reemplaza el UUID)
+GET {{baseUrl}}/users/REEMPLAZAR_CON_UUID
+Authorization: Bearer {{adminToken}}
+
+###
+
+### 21. Obtener usuario - ID inválido (debe retornar 400)
+GET {{baseUrl}}/users/no-es-un-uuid
+Authorization: Bearer {{adminToken}}
+
+###
+
+### 22. Actualizar usuario como Admin
+PUT {{baseUrl}}/users/REEMPLAZAR_CON_UUID
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "role": "INSTRUCTOR",
+  "isActive": true,
+  "phone": "+57 300 999 8888"
+}
+
+###
+
+### 23. Activar/Desactivar usuario
+PATCH {{baseUrl}}/users/REEMPLAZAR_CON_UUID/toggle-active
+Authorization: Bearer {{adminToken}}
+
+###
+
+### 24. Eliminar usuario
+DELETE {{baseUrl}}/users/REEMPLAZAR_CON_UUID
+Authorization: Bearer {{adminToken}}
+
+###
+
+### 25. Eliminar usuario - ID no existente (debe retornar 404)
+DELETE {{baseUrl}}/users/00000000-0000-0000-0000-000000000000
+Authorization: Bearer {{adminToken}}
+
+
+# ─────────────────────────────────────────────
+# VALIDACIONES Y CASOS DE ERROR
+# ─────────────────────────────────────────────
+
+### 26. Registro - Email duplicado (debe retornar 409)
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "firstName": "Duplicado",
+  "lastName": "Test",
+  "email": "admin@aims.com",
+  "password": "Test1234"
+}
+
+###
+
+### 27. Registro - Contraseña débil (debe retornar 400)
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "firstName": "Test",
+  "lastName": "Usuario",
+  "email": "test@email.com",
+  "password": "debil"
+}
+
+###
+
+### 28. Listar usuarios sin token (debe retornar 401)
+GET {{baseUrl}}/users
+
+###
+
+### 29. Listar usuarios con token de Aprendiz (debe retornar 403)
+GET {{baseUrl}}/users
+Authorization: Bearer {{userToken}}
+
+###
+
+### 30. Ruta inexistente (debe retornar 404)
+GET http://localhost:3000/api/v1/ruta-que-no-existe

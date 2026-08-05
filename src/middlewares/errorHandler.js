@@ -1,0 +1,57 @@
+const AppError = require('../utils/appError');
+
+const errorHandler = (err, req, res, _next) => {
+  // Default values
+  let statusCode = err.statusCode || 500;
+  let message = err.message || 'Error interno del servidor';
+  let errors = err.errors || [];
+
+  // Prisma known errors
+  if (err.code === 'P2002') {
+    statusCode = 409;
+    const field = err.meta?.target?.[0] || 'campo';
+    message = `Ya existe un registro con ese valor de ${field}`;
+    errors = [`El campo ${field} debe ser único`];
+  }
+
+  if (err.code === 'P2025') {
+    statusCode = 404;
+    message = 'Registro no encontrado';
+  }
+
+  // JWT errors
+  if (err.name === 'JsonWebTokenError') {
+    statusCode = 401;
+    message = 'Token inválido';
+  }
+
+  if (err.name === 'TokenExpiredError') {
+    statusCode = 401;
+    message = 'Token expirado';
+  }
+
+  // Joi validation errors
+  if (err.isJoi) {
+    statusCode = 400;
+    message = 'Error de validación';
+    errors = err.details.map((detail) => detail.message);
+  }
+
+  // Log error in development
+  if (process.env.NODE_ENV === 'development') {
+    console.error('Error:', {
+      message: err.message,
+      stack: err.stack,
+      statusCode,
+    });
+  }
+
+  return res.status(statusCode).json({
+    success: false,
+    message,
+    errors,
+    ...(process.env.NODE_ENV === 'development' && { stack: err.stack }),
+  });
+};
+
+module.exports = errorHandler;
