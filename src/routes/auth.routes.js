@@ -51,10 +51,6 @@ const router = Router();
  *               phone:
  *                 type: string
  *                 example: "+573001234567"
- *               role:
- *                 type: string
- *                 enum: [ADMIN, INSTRUCTOR, APRENDIZ]
- *                 default: APRENDIZ
  *     responses:
  *       201:
  *         description: Usuario registrado exitosamente
@@ -63,7 +59,7 @@ const router = Router();
  *       409:
  *         description: Email ya registrado
  */
-router.post('/register', validate(registerSchema), authController.register);
+router.post('/register', validate({ body: registerSchema }), authController.register);
 
 /**
  * @swagger
@@ -93,7 +89,7 @@ router.post('/register', validate(registerSchema), authController.register);
  *       429:
  *         description: Demasiados intentos (rate limit)
  */
-router.post('/login', authLimiter, validate(loginSchema), authController.login);
+router.post('/login', authLimiter, validate({ body: loginSchema }), authController.login);
 
 /**
  * @swagger
@@ -117,7 +113,7 @@ router.post('/login', authLimiter, validate(loginSchema), authController.login);
  *       400:
  *         description: Token inválido o expirado
  */
-router.post('/verify-email', authLimiter, validate(verifyEmailSchema), authController.verifyEmail);
+router.post('/verify-email', authLimiter, validate({ body: verifyEmailSchema }), authController.verifyEmail);
 router.get('/verify-email', authLimiter, authController.verifyEmail);
 
 /**
@@ -143,7 +139,7 @@ router.get('/verify-email', authLimiter, authController.verifyEmail);
  *       429:
  *         description: Demasiados intentos (rate limit)
  */
-router.post('/resend-verification', authLimiter, validate(emailOnlySchema), authController.resendVerification);
+router.post('/resend-verification', authLimiter, validate({ body: emailOnlySchema }), authController.resendVerification);
 
 /**
  * @swagger
@@ -168,7 +164,7 @@ router.post('/resend-verification', authLimiter, validate(emailOnlySchema), auth
  *       429:
  *         description: Demasiados intentos (rate limit)
  */
-router.post('/forgot-password', authLimiter, validate(emailOnlySchema), authController.forgotPassword);
+router.post('/forgot-password', authLimiter, validate({ body: emailOnlySchema }), authController.forgotPassword);
 
 /**
  * @swagger
@@ -194,7 +190,7 @@ router.post('/forgot-password', authLimiter, validate(emailOnlySchema), authCont
  *       429:
  *         description: Demasiados intentos (rate limit)
  */
-router.post('/validate-reset-token', authLimiter, validate(verifyEmailSchema), authController.validateResetToken);
+router.post('/validate-reset-token', authLimiter, validate({ body: verifyEmailSchema }), authController.validateResetToken);
 router.get('/validate-reset-token', authLimiter, authController.validateResetToken);
 
 /**
@@ -224,7 +220,7 @@ router.get('/validate-reset-token', authLimiter, authController.validateResetTok
  *       429:
  *         description: Demasiados intentos (rate limit)
  */
-router.post('/reset-password', authLimiter, validate(resetPasswordSchema), authController.resetPassword);
+router.post('/reset-password', authLimiter, validate({ body: resetPasswordSchema }), authController.resetPassword);
 
 /**
  * @swagger
@@ -248,7 +244,7 @@ router.post('/reset-password', authLimiter, validate(resetPasswordSchema), authC
  *       401:
  *         description: Refresh token inválido, expirado o revocado
  */
-router.post('/refresh-token', validate(refreshTokenSchema), authController.refreshToken);
+router.post('/refresh-token', validate({ body: refreshTokenSchema }), authController.refreshToken);
 
 /**
  * @swagger
@@ -300,7 +296,7 @@ router.post('/logout', authController.logout);
  *       401:
  *         description: No autorizado
  */
-router.post('/change-password', authenticate, validate(changePasswordSchema), authController.changePassword);
+router.post('/change-password', authenticate, validate({ body: changePasswordSchema }), authController.changePassword);
 
 /**
  * @swagger
