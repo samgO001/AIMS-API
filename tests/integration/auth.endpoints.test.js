@@ -96,6 +96,24 @@ describe('Auth Module Complete Integration Tests', () => {
       expect(res.body.success).toBe(false);
       expect(res.body.message).toBe('Credenciales inválidas');
     });
+
+    test('should fail login when user email is not verified (403)', async () => {
+      userRepository.findByEmail.mockResolvedValue({
+        ...mockUser,
+        isEmailVerified: false,
+      });
+
+      const res = await request(app)
+        .post('/api/v1/auth/login')
+        .send({
+          email: 'juan.perez@soy.sena.edu.co',
+          password: 'Password123',
+        });
+
+      expect(res.status).toBe(403);
+      expect(res.body.success).toBe(false);
+      expect(res.body.message).toContain('Debes verificar tu correo electrónico');
+    });
   });
 
   // ─── 2. ME (GET AUTHENTICATED USER) ──────────────────────────────────────
