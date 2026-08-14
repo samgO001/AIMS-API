@@ -47,7 +47,7 @@ class AuthService {
   /**
    * Login user and issue Access Token & Refresh Token.
    */
-  async login(email, password) {
+ async login(email, password) {
     const user = await userRepository.findByEmail(email);
     if (!user) {
       throw AppError.unauthorized('Credenciales inválidas');
@@ -62,10 +62,14 @@ class AuthService {
       throw AppError.unauthorized('Credenciales inválidas');
     }
 
+    // NUEVO: Bloquear login si el correo no ha sido verificado
+    if (!user.isEmailVerified) {
+      throw AppError.forbidden('Debes verificar tu correo electrónico antes de iniciar sesión. Revisa tu bandeja de entrada.');
+    }
+
     // Generate JWT Access Token
     const accessToken = this._generateAccessToken(user);
-
-    // Generate Refresh Token & save to DB
+     // Generate Refresh Token & save to DB
     const refreshToken = await this._generateAndSaveRefreshToken(user.id);
 
     const { password: _, emailVerificationToken, emailVerificationExpires, resetPasswordToken, resetPasswordExpires, ...safeUser } = user;
