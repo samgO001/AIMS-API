@@ -2,11 +2,16 @@ const prisma = require('../config/database');
 
 class AuthRepository {
   /**
-   * Find user by email verification token
+   * Find user by email verification token and ensure it has not expired
    */
   async findUserByVerificationToken(token) {
     return prisma.user.findFirst({
-      where: { emailVerificationToken: token },
+      where: {
+        emailVerificationToken: token,
+        emailVerificationExpires: {
+          gt: new Date(),
+        },
+      },
     });
   }
 
@@ -25,17 +30,20 @@ class AuthRepository {
   }
 
   /**
-   * Update verification token for user
+   * Update verification token and expiration for user
    */
-  async updateVerificationToken(userId, token) {
+  async updateVerificationToken(userId, token, expiresAt) {
     return prisma.user.update({
       where: { id: userId },
-      data: { emailVerificationToken: token },
+      data: {
+        emailVerificationToken: token,
+        emailVerificationExpires: expiresAt,
+      },
     });
   }
 
   /**
-   * Set user email as verified and clear verification token
+   * Set user email as verified and clear verification token and expiration
    */
   async verifyUserEmail(userId) {
     return prisma.user.update({
@@ -43,6 +51,7 @@ class AuthRepository {
       data: {
         isEmailVerified: true,
         emailVerificationToken: null,
+        emailVerificationExpires: null,
       },
     });
   }

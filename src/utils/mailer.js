@@ -20,7 +20,7 @@ if (env.smtp.user && env.smtp.pass) {
  */
 const sendEmail = async ({ to, subject, html, text }) => {
   if (!transporter) {
-    console.log('\n--- 📧 EMAIL SIMULATION (DEV MODE) ---');
+    console.log('\n--- EMAIL SIMULATION (DEV MODE) ---');
     console.log(`To: ${to}`);
     console.log(`Subject: ${subject}`);
     console.log(`Content:\n${text || html}`);
@@ -40,9 +40,9 @@ const sendEmail = async ({ to, subject, html, text }) => {
     await transporter.sendMail(mailOptions);
     return true;
   } catch (error) {
-    console.error('❌ Error sending email:', error.message);
+    console.error('[ERROR] Error sending email:', error.message);
     // Log simulation as fallback
-    console.log(`\n--- 📧 EMAIL FALLBACK (Error: ${error.message}) ---`);
+    console.log(`\n--- EMAIL FALLBACK (Error: ${error.message}) ---`);
     console.log(`To: ${to}\nSubject: ${subject}\nContent: ${text || html}\n`);
     return false;
   }

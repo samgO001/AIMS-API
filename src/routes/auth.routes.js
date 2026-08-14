@@ -117,8 +117,8 @@ router.post('/login', authLimiter, validate(loginSchema), authController.login);
  *       400:
  *         description: Token inválido o expirado
  */
-router.post('/verify-email', validate(verifyEmailSchema), authController.verifyEmail);
-router.get('/verify-email', authController.verifyEmail);
+router.post('/verify-email', authLimiter, validate(verifyEmailSchema), authController.verifyEmail);
+router.get('/verify-email', authLimiter, authController.verifyEmail);
 
 /**
  * @swagger
@@ -140,6 +140,8 @@ router.get('/verify-email', authController.verifyEmail);
  *     responses:
  *       200:
  *         description: Solicitud procesada
+ *       429:
+ *         description: Demasiados intentos (rate limit)
  */
 router.post('/resend-verification', authLimiter, validate(emailOnlySchema), authController.resendVerification);
 
@@ -163,8 +165,37 @@ router.post('/resend-verification', authLimiter, validate(emailOnlySchema), auth
  *     responses:
  *       200:
  *         description: Enlace de recuperación enviado si el correo existe
+ *       429:
+ *         description: Demasiados intentos (rate limit)
  */
 router.post('/forgot-password', authLimiter, validate(emailOnlySchema), authController.forgotPassword);
+
+/**
+ * @swagger
+ * /auth/validate-reset-token:
+ *   post:
+ *     summary: Validar si un token de recuperación de contraseña es válido sin cambiar la contraseña
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [token]
+ *             properties:
+ *               token:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Token de recuperación válido
+ *       400:
+ *         description: Token inválido o expirado
+ *       429:
+ *         description: Demasiados intentos (rate limit)
+ */
+router.post('/validate-reset-token', authLimiter, validate(verifyEmailSchema), authController.validateResetToken);
+router.get('/validate-reset-token', authLimiter, authController.validateResetToken);
 
 /**
  * @swagger
@@ -190,8 +221,10 @@ router.post('/forgot-password', authLimiter, validate(emailOnlySchema), authCont
  *         description: Contraseña restablecida exitosamente
  *       400:
  *         description: Token de recuperación inválido o expirado
+ *       429:
+ *         description: Demasiados intentos (rate limit)
  */
-router.post('/reset-password', validate(resetPasswordSchema), authController.resetPassword);
+router.post('/reset-password', authLimiter, validate(resetPasswordSchema), authController.resetPassword);
 
 /**
  * @swagger
