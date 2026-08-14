@@ -23,7 +23,6 @@ const registerSchema = Joi.object({
       'string.pattern.base': 'La contraseña debe contener al menos una mayúscula, una minúscula y un número',
     }),
   phone: Joi.string().trim().allow(null, '').optional(),
-  role: Joi.string().valid('ADMIN', 'INSTRUCTOR', 'APRENDIZ').default('APRENDIZ'),
 });
 
 const loginSchema = Joi.object({
