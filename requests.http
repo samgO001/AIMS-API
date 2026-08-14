@@ -105,6 +105,60 @@ Content-Type: application/json
 
 
 # ─────────────────────────────────────────────
+# AUTH - VERIFICACIÓN DE CORREO Y RECUPERACIÓN DE CONTRASEÑA
+# ─────────────────────────────────────────────
+
+### 8. Solicitar recuperación de contraseña
+POST {{baseUrl}}/auth/forgot-password
+Content-Type: application/json
+
+{
+  "email": "maria.garcia@email.com"
+}
+
+###
+
+### 9. Validar token de recuperación de contraseña
+POST {{baseUrl}}/auth/validate-reset-token
+Content-Type: application/json
+
+{
+  "token": "REEMPLAZAR_CON_TOKEN_DE_CORREO"
+}
+
+###
+
+### 10. Restablecer contraseña con token
+POST {{baseUrl}}/auth/reset-password
+Content-Type: application/json
+
+{
+  "token": "REEMPLAZAR_CON_TOKEN_DE_CORREO",
+  "newPassword": "NuevaPassword123"
+}
+
+###
+
+### 11. Verificar correo con token
+POST {{baseUrl}}/auth/verify-email
+Content-Type: application/json
+
+{
+  "token": "REEMPLAZAR_CON_TOKEN_DE_VERIFICACION"
+}
+
+###
+
+### 12. Reenviar correo de verificación
+POST {{baseUrl}}/auth/resend-verification
+Content-Type: application/json
+
+{
+  "email": "maria.garcia@email.com"
+}
+
+
+# ─────────────────────────────────────────────
 # PERFIL - USUARIO AUTENTICADO
 # ─────────────────────────────────────────────
 
