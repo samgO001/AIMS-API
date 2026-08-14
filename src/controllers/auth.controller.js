@@ -32,6 +32,12 @@ class AuthController {
     return success(res, null, result.message);
   });
 
+  validateResetToken = catchAsync(async (req, res) => {
+    const token = req.query.token || req.body.token;
+    const result = await authService.validateResetToken(token);
+    return success(res, null, result.message);
+  });
+
   resetPassword = catchAsync(async (req, res) => {
     const { token, newPassword } = req.body;
     const result = await authService.resetPassword(token, newPassword);
