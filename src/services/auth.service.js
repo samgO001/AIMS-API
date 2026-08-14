@@ -6,6 +6,7 @@ const authRepository = require('../repositories/auth.repository');
 const AppError = require('../utils/appError');
 const { generateRandomToken, hashToken } = require('../utils/token');
 const { sendVerificationEmail, sendPasswordResetEmail } = require('../utils/mailer');
+const { resolveRoleFromEmail } = require('../utils/roleResolver');
 
 const SALT_ROUNDS = 12;
 
@@ -14,6 +15,8 @@ class AuthService {
    * Register a new user and send verification email.
    */
   async register(userData) {
+    const resolvedRole = resolveRoleFromEmail(userData.email);
+
     const emailExists = await userRepository.existsByEmail(userData.email);
     if (emailExists) {
       throw AppError.conflict('El email ya está registrado');
@@ -26,8 +29,12 @@ class AuthService {
     const emailVerificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
 
     const user = await userRepository.create({
-      ...userData,
+      firstName: userData.firstName,
+      lastName: userData.lastName,
+      email: userData.email,
+      phone: userData.phone || null,
       password: hashedPassword,
+      role: resolvedRole,
       isEmailVerified: false,
       emailVerificationToken: hashedToken,
       emailVerificationExpires,

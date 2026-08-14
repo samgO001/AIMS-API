@@ -18,44 +18,70 @@ GET http://localhost:3000/api/health
 # AUTH - REGISTRO E INICIO DE SESIÓN
 # ─────────────────────────────────────────────
 
-### 1. Registrar un Aprendiz (rol por defecto)
+### 1. Registrar Aprendiz con correo @soy.sena.edu.co (Asigna rol APRENDIZ)
 POST {{baseUrl}}/auth/register
 Content-Type: application/json
 
 {
   "firstName": "María",
   "lastName": "García",
-  "email": "maria.garcia@email.com",
+  "email": "maria.garcia@soy.sena.edu.co",
   "password": "MiPassword123",
   "phone": "+57 300 123 4567"
 }
 
 ###
 
-### 2. Registrar un Instructor (requiere ser ADMIN en producción)
+### 2. Registrar Aprendiz con correo @gmail.com (Asigna rol APRENDIZ)
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "firstName": "Juan",
+  "lastName": "Pérez",
+  "email": "juan.perez@gmail.com",
+  "password": "MiPassword123",
+  "phone": "+57 300 123 4567"
+}
+
+###
+
+### 3. Registrar Instructor con correo @sena.edu.co (Asigna rol INSTRUCTOR)
 POST {{baseUrl}}/auth/register
 Content-Type: application/json
 
 {
   "firstName": "Carlos",
   "lastName": "Rodríguez",
-  "email": "carlos.rodriguez@email.com",
+  "email": "carlos.rodriguez@sena.edu.co",
   "password": "Instructor123",
-  "role": "INSTRUCTOR",
   "phone": "+57 310 987 6543"
 }
 
 ###
 
-### 3. Registrar un Admin
+### 4. Intento de registro con dominio no permitido (retorna 400 Bad Request)
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "firstName": "Pedro",
+  "lastName": "Gómez",
+  "email": "pedro.gomez@hotmail.com",
+  "password": "Password123"
+}
+
+###
+
+### 5. Intento malicioso de registrarse como ADMIN (Ignora role y asigna APRENDIZ por dominio)
 POST {{baseUrl}}/auth/register
 Content-Type: application/json
 
 {
   "firstName": "Admin",
-  "lastName": "AIMS",
-  "email": "admin@aims.com",
-  "password": "Admin1234",
+  "lastName": "Hacker",
+  "email": "hacker@gmail.com",
+  "password": "Admin1234Password",
   "role": "ADMIN"
 }
 

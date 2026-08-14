@@ -1,0 +1,261 @@
+const request = require('supertest');
+const jwt = require('jsonwebtoken');
+const app = require('../../src/app');
+const env = require('../../src/config/env');
+
+jest.mock('bcryptjs', () => ({
+  ...jest.requireActual('bcryptjs'),
+  compare: jest.fn().mockImplementation(async (plain, hashed) => {
+    if (plain === 'Password123') return true;
+    return false;
+  }),
+  hash: jest.fn().mockImplementation(async (plain) => `$2a$12$mockHashed_${plain}`),
+}));
+
+// Mock external dependencies to isolate test suite
+jest.mock('../../src/repositories/user.repository');
+jest.mock('../../src/repositories/auth.repository');
+jest.mock('../../src/utils/mailer', () => ({
+  sendVerificationEmail: jest.fn().mockResolvedValue(true),
+  sendPasswordResetEmail: jest.fn().mockResolvedValue(true),
+}));
+
+const userRepository = require('../../src/repositories/user.repository');
+const authRepository = require('../../src/repositories/auth.repository');
+
+describe('Auth Module Complete Integration Tests', () => {
+  const mockUser = {
+    id: 'user-uuid-1234',
+    firstName: 'Juan',
+    lastName: 'Pérez',
+    email: 'juan.perez@soy.sena.edu.co',
+    password: '$2a$12$eImiTXuWVxfM37uY4JANjO5E/80.J3iP1N8oF11Yy.P2m/N41a3pC', // 'Password123'
+    role: 'APRENDIZ',
+    isActive: true,
+    isEmailVerified: true,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
+
+  const validAccessToken = jwt.sign(
+    { id: mockUser.id, email: mockUser.email, role: mockUser.role },
+    env.jwtSecret,
+    { expiresIn: '15m' }
+  );
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  // ─── 1. LOGIN ─────────────────────────────────────────────────────────────
+  describe('POST /api/v1/auth/login', () => {
+    test('should login successfully with correct credentials', async () => {
+      userRepository.findByEmail.mockResolvedValue(mockUser);
+      authRepository.createRefreshToken.mockResolvedValue({ token: 'mock-refresh-token' });
+
+      const res = await request(app)
+        .post('/api/v1/auth/login')
+        .send({
+          email: 'juan.perez@soy.sena.edu.co',
+          password: 'Password123',
+        });
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data).toHaveProperty('accessToken');
+      expect(res.body.data).toHaveProperty('refreshToken');
+      expect(res.body.data.user.email).toBe(mockUser.email);
+    });
+
+    test('should fail login with invalid password (401)', async () => {
+      userRepository.findByEmail.mockResolvedValue(mockUser);
+
+      const res = await request(app)
+        .post('/api/v1/auth/login')
+        .send({
+          email: 'juan.perez@soy.sena.edu.co',
+          password: 'WrongPassword123',
+        });
+
+      expect(res.status).toBe(401);
+      expect(res.body.success).toBe(false);
+      expect(res.body.message).toBe('Credenciales inválidas');
+    });
+
+    test('should fail login with non-existent email (401)', async () => {
+      userRepository.findByEmail.mockResolvedValue(null);
+
+      const res = await request(app)
+        .post('/api/v1/auth/login')
+        .send({
+          email: 'nonexistent@soy.sena.edu.co',
+          password: 'Password123',
+        });
+
+      expect(res.status).toBe(401);
+      expect(res.body.success).toBe(false);
+      expect(res.body.message).toBe('Credenciales inválidas');
+    });
+  });
+
+  // ─── 2. ME (GET AUTHENTICATED USER) ──────────────────────────────────────
+  describe('GET /api/v1/auth/me', () => {
+    test('should return authenticated user profile', async () => {
+      userRepository.findById.mockResolvedValue(mockUser);
+
+      const res = await request(app)
+        .get('/api/v1/auth/me')
+        .set('Authorization', `Bearer ${validAccessToken}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.email).toBe(mockUser.email);
+    });
+
+    test('should reject request without JWT token (401)', async () => {
+      const res = await request(app).get('/api/v1/auth/me');
+
+      expect(res.status).toBe(401);
+      expect(res.body.success).toBe(false);
+    });
+  });
+
+  // ─── 3. REFRESH TOKEN ────────────────────────────────────────────────────
+  describe('POST /api/v1/auth/refresh-token', () => {
+    test('should rotate refresh token successfully', async () => {
+      authRepository.findRefreshToken.mockResolvedValue({
+        id: 'token-id-123',
+        token: 'valid-refresh-token',
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        revokedAt: null,
+        user: mockUser,
+      });
+      authRepository.createRefreshToken.mockResolvedValue({ token: 'new-refresh-token' });
+      authRepository.revokeRefreshToken.mockResolvedValue(true);
+
+      const res = await request(app)
+        .post('/api/v1/auth/refresh-token')
+        .send({ refreshToken: 'valid-refresh-token' });
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data).toHaveProperty('accessToken');
+      expect(res.body.data).toHaveProperty('refreshToken');
+    });
+
+    test('should reject expired or revoked refresh token (401)', async () => {
+      authRepository.findRefreshToken.mockResolvedValue({
+        id: 'token-id-123',
+        token: 'revoked-refresh-token',
+        expiresAt: new Date(Date.now() - 1000),
+        revokedAt: new Date(),
+        user: mockUser,
+      });
+
+      const res = await request(app)
+        .post('/api/v1/auth/refresh-token')
+        .send({ refreshToken: 'revoked-refresh-token' });
+
+      expect(res.status).toBe(401);
+      expect(res.body.success).toBe(false);
+    });
+  });
+
+  // ─── 4. LOGOUT ───────────────────────────────────────────────────────────
+  describe('POST /api/v1/auth/logout', () => {
+    test('should logout successfully by revoking refresh token', async () => {
+      authRepository.findRefreshToken.mockResolvedValue({
+        id: 'token-id-123',
+        user: mockUser,
+      });
+      authRepository.revokeRefreshToken.mockResolvedValue(true);
+
+      const res = await request(app)
+        .post('/api/v1/auth/logout')
+        .send({ refreshToken: 'valid-refresh-token' });
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.message).toBe('Sesión cerrada exitosamente.');
+    });
+  });
+
+  // ─── 5. EMAIL VERIFICATION & RECOVERY ──────────────────────────────────
+  describe('POST /api/v1/auth/forgot-password', () => {
+    test('should return generic success message to prevent email enumeration', async () => {
+      userRepository.findByEmail.mockResolvedValue(null);
+
+      const res = await request(app)
+        .post('/api/v1/auth/forgot-password')
+        .send({ email: 'nonexistent@gmail.com' });
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.message).toContain('Si el correo existe');
+    });
+  });
+
+  describe('POST /api/v1/auth/validate-reset-token', () => {
+    test('should validate valid reset token', async () => {
+      authRepository.findUserByResetToken.mockResolvedValue(mockUser);
+
+      const res = await request(app)
+        .post('/api/v1/auth/validate-reset-token')
+        .send({ token: 'valid-reset-token' });
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+    });
+
+    test('should reject invalid or expired reset token', async () => {
+      authRepository.findUserByResetToken.mockResolvedValue(null);
+
+      const res = await request(app)
+        .post('/api/v1/auth/validate-reset-token')
+        .send({ token: 'invalid-reset-token' });
+
+      expect(res.status).toBe(400);
+      expect(res.body.success).toBe(false);
+    });
+  });
+
+  describe('POST /api/v1/auth/reset-password', () => {
+    test('should reset password and revoke all active refresh tokens', async () => {
+      authRepository.findUserByResetToken.mockResolvedValue(mockUser);
+      authRepository.resetPassword.mockResolvedValue(true);
+      authRepository.revokeAllUserRefreshTokens.mockResolvedValue(true);
+
+      const res = await request(app)
+        .post('/api/v1/auth/reset-password')
+        .send({
+          token: 'valid-reset-token',
+          newPassword: 'NewSecurePassword123',
+        });
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(authRepository.revokeAllUserRefreshTokens).toHaveBeenCalledWith(mockUser.id);
+    });
+  });
+
+  // ─── 6. CHANGE PASSWORD ──────────────────────────────────────────────────
+  describe('POST /api/v1/auth/change-password', () => {
+    test('should change password for authenticated user and revoke active sessions', async () => {
+      userRepository.findByIdWithPassword.mockResolvedValue(mockUser);
+      userRepository.update.mockResolvedValue(true);
+      authRepository.revokeAllUserRefreshTokens.mockResolvedValue(true);
+
+      const res = await request(app)
+        .post('/api/v1/auth/change-password')
+        .set('Authorization', `Bearer ${validAccessToken}`)
+        .send({
+          currentPassword: 'Password123',
+          newPassword: 'BrandNewPassword123',
+        });
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(authRepository.revokeAllUserRefreshTokens).toHaveBeenCalledWith(mockUser.id);
+    });
+  });
+});
