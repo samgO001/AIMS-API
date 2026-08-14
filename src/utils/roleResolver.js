@@ -12,12 +12,12 @@ const AppError = require('./appError');
  */
 const resolveRoleFromEmail = (email) => {
   if (!email || typeof email !== 'string') {
-    throw AppError.badRequest('El correo electronico es obligatorio');
+    throw AppError.badRequest('El correo electrónico es obligatorio');
   }
 
   const parts = email.trim().split('@');
   if (parts.length !== 2) {
-    throw AppError.badRequest('El formato del correo electronico es invalido');
+    throw AppError.badRequest('El formato del correo electrónico es inválido');
   }
 
   const domain = parts[1].toLowerCase();
@@ -29,7 +29,7 @@ const resolveRoleFromEmail = (email) => {
   } else if (domain === 'gmail.com') {
     return 'APRENDIZ';
   } else {
-    throw AppError.badRequest('El dominio del correo no esta permitido para registro');
+    throw AppError.badRequest('El dominio del correo no está permitido para registro');
   }
 };
 
