@@ -1,23 +1,37 @@
 const AppError = require('../utils/appError');
 
 const validate = (schema) => {
+  if (!schema) {
+    throw new Error('El middleware de validación requiere un esquema');
+  }
+
+  // Guardarraíl defensivo: Si se pasa un schema de Joi directamente sin objeto contenedor (e.g. validate(schema)),
+  // lo envolvemos automáticamente como { body: schema } para prevenir omitir la validación.
+  let targetSchema = schema;
+  const isJoiSchema = schema.isJoi || (typeof schema.validate === 'function' && schema.type === 'object');
+  const hasTargets = schema.body || schema.params || schema.query;
+
+  if (isJoiSchema || !hasTargets) {
+    targetSchema = { body: schema };
+  }
+
   return (req, res, next) => {
     const dataToValidate = {};
 
-    if (schema.body) {
+    if (targetSchema.body) {
       dataToValidate.body = req.body;
     }
-    if (schema.params) {
+    if (targetSchema.params) {
       dataToValidate.params = req.params;
     }
-    if (schema.query) {
+    if (targetSchema.query) {
       dataToValidate.query = req.query;
     }
 
     const schemas = {};
-    if (schema.body) schemas.body = schema.body;
-    if (schema.params) schemas.params = schema.params;
-    if (schema.query) schemas.query = schema.query;
+    if (targetSchema.body) schemas.body = targetSchema.body;
+    if (targetSchema.params) schemas.params = targetSchema.params;
+    if (targetSchema.query) schemas.query = targetSchema.query;
 
     const errors = [];
 
