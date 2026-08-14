@@ -21,14 +21,16 @@ class AuthService {
 
     const hashedPassword = await bcrypt.hash(userData.password, SALT_ROUNDS);
 
-    // Generate email verification token (unhashed sent to email, hashed stored in DB)
+    // Generate email verification token (unhashed sent to email, hashed stored in DB with 24h expiry)
     const { unhashedToken, hashedToken } = generateRandomToken();
+    const emailVerificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
 
     const user = await userRepository.create({
       ...userData,
       password: hashedPassword,
       isEmailVerified: false,
       emailVerificationToken: hashedToken,
+      emailVerificationExpires,
     });
 
     // Send verification email asynchronously
@@ -66,7 +68,7 @@ class AuthService {
     // Generate Refresh Token & save to DB
     const refreshToken = await this._generateAndSaveRefreshToken(user.id);
 
-    const { password: _, emailVerificationToken, resetPasswordToken, resetPasswordExpires, ...safeUser } = user;
+    const { password: _, emailVerificationToken, emailVerificationExpires, resetPasswordToken, resetPasswordExpires, ...safeUser } = user;
 
     return {
       user: safeUser,
@@ -106,7 +108,8 @@ class AuthService {
     }
 
     const { unhashedToken, hashedToken } = generateRandomToken();
-    await authRepository.updateVerificationToken(user.id, hashedToken);
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+    await authRepository.updateVerificationToken(user.id, hashedToken, expiresAt);
 
     await sendVerificationEmail(user.email, unhashedToken);
 
@@ -131,6 +134,20 @@ class AuthService {
     await sendPasswordResetEmail(user.email, unhashedToken);
 
     return { message: 'Si el correo existe en nuestra plataforma, se enviará un enlace de recuperación.' };
+  }
+
+  /**
+   * Validate password reset token without changing password.
+   */
+  async validateResetToken(unhashedToken) {
+    const hashed = hashToken(unhashedToken);
+    const user = await authRepository.findUserByResetToken(hashed);
+
+    if (!user) {
+      throw AppError.badRequest('El token de recuperación es inválido o ha expirado.');
+    }
+
+    return { message: 'El token de recuperación de contraseña es válido.' };
   }
 
   /**
