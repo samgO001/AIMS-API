@@ -24,7 +24,13 @@ describe('roleResolver Unit Tests', () => {
 
     expect(() => {
       resolveRoleFromEmail('user@outlook.com');
-    }).toThrow('El dominio del correo no esta permitido para registro');
+    }).toThrow('El dominio del correo no está permitido para registro');
+  });
+
+  test('should handle uppercase domain letters seamlessly', () => {
+    expect(resolveRoleFromEmail('TEST.USER@GMAIL.COM')).toBe('APRENDIZ');
+    expect(resolveRoleFromEmail('APRENDIZ@SOY.SENA.EDU.CO')).toBe('APRENDIZ');
+    expect(resolveRoleFromEmail('INSTRUCTOR@SENA.EDU.CO')).toBe('INSTRUCTOR');
   });
 
   test('should reject invalid email formats', () => {

@@ -1,36 +1,32 @@
 const request = require('supertest');
 const app = require('../../src/app');
-const prisma = require('../../src/config/database');
+
+// Mock dependencies to isolate integration tests from active database / SMTP services
+jest.mock('../../src/repositories/user.repository');
+jest.mock('../../src/utils/mailer', () => ({
+  sendVerificationEmail: jest.fn().mockResolvedValue(true),
+  sendPasswordResetEmail: jest.fn().mockResolvedValue(true),
+}));
+
+const userRepository = require('../../src/repositories/user.repository');
 
 describe('Auth Register Integration Tests', () => {
-  const testEmails = [
-    'aprendiz.test.gmail@gmail.com',
-    'aprendiz.test.soy@soy.sena.edu.co',
-    'instructor.test.sena@sena.edu.co',
-  ];
-
-  beforeEach(async () => {
-    // Delete any existing test users to ensure clean slate before each test
-    await prisma.user.deleteMany({
-      where: {
-        email: {
-          in: testEmails,
-        },
-      },
-    });
-  });
-
-  afterAll(async () => {
-    // Clean up created users after all tests
-    await prisma.user.deleteMany({
-      where: {
-        email: {
-          in: testEmails,
-        },
-      },
-    });
-    // Disconnect Prisma
-    await prisma.$disconnect();
+  beforeEach(() => {
+    jest.clearAllMocks();
+    
+    // Default repository mock implementations
+    userRepository.existsByEmail.mockResolvedValue(false);
+    userRepository.create.mockImplementation(async (userData) => ({
+      id: 'mock-uuid-1234',
+      firstName: userData.firstName,
+      lastName: userData.lastName,
+      email: userData.email,
+      phone: userData.phone || null,
+      role: userData.role,
+      isEmailVerified: userData.isEmailVerified,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    }));
   });
 
   test('should register a Gmail email as APRENDIZ', async () => {
@@ -93,10 +89,11 @@ describe('Auth Register Integration Tests', () => {
 
     expect(res.status).toBe(400);
     expect(res.body.success).toBe(false);
-    expect(res.body.message).toBe('El dominio del correo no esta permitido para registro');
+    expect(res.body.message).toBe('El dominio del correo no está permitido para registro');
+    expect(userRepository.create).not.toHaveBeenCalled();
   });
 
-  test('should ignore and strip the role property even if client passes role: ADMIN', async () => {
+  test('should ignore and strip role property when client attempts role: ADMIN with gmail.com', async () => {
     const res = await request(app)
       .post('/api/v1/auth/register')
       .send({
@@ -109,7 +106,38 @@ describe('Auth Register Integration Tests', () => {
 
     expect(res.status).toBe(201);
     expect(res.body.success).toBe(true);
-    // Should be resolved to APRENDIZ because of gmail.com domain, not ADMIN
     expect(res.body.data.role).toBe('APRENDIZ');
+  });
+
+  test('should ignore and strip role property when client attempts role: ADMIN with @soy.sena.edu.co', async () => {
+    const res = await request(app)
+      .post('/api/v1/auth/register')
+      .send({
+        firstName: 'Maria',
+        lastName: 'Sena',
+        email: 'maria.estudiante@soy.sena.edu.co',
+        password: 'Password123',
+        role: 'ADMIN',
+      });
+
+    expect(res.status).toBe(201);
+    expect(res.body.success).toBe(true);
+    expect(res.body.data.role).toBe('APRENDIZ');
+  });
+
+  test('should ignore and strip role property when client attempts role: ADMIN with @sena.edu.co', async () => {
+    const res = await request(app)
+      .post('/api/v1/auth/register')
+      .send({
+        firstName: 'Carlos',
+        lastName: 'Docente',
+        email: 'carlos.docente@sena.edu.co',
+        password: 'Password123',
+        role: 'ADMIN',
+      });
+
+    expect(res.status).toBe(201);
+    expect(res.body.success).toBe(true);
+    expect(res.body.data.role).toBe('INSTRUCTOR');
   });
 });
