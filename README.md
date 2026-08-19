@@ -2,6 +2,14 @@
 
 Backend RESTful API para la plataforma **AIMS (Academic Intelligent Management System)**, desarrollada con **Node.js**, **Express v5**, **Prisma 7** y **PostgreSQL**. Ofrece un sistema integral de autenticación con rotación de tokens (JWT), verificación de correo, recuperación de contraseña, asignación automática de roles por dominio de correo, control de acceso basado en roles (RBAC) y gestión completa de usuarios.
 
+
+---
+
+## 🔗 Repositorio Frontend Relacionado
+
+El repositorio con el código fuente del cliente de interfaz de usuario (**Frontend**) de AIMS se encuentra disponible en:
+* 🌐 **AIMS Frontend Repository:** [https://github.com/wsderfghbgv/AIMS](https://github.com/wsderfghbgv/AIMS)
+
 ---
 
 ## 🛠️ Tecnologías Utilizadas
