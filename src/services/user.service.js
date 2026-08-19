@@ -13,7 +13,9 @@ class UserService {
       order = 'desc',
     } = queryParams;
 
-    const skip = (page - 1) * limit;
+    const parsedPage = Number(page) || 1;
+    const parsedLimit = Number(limit) || 10;
+    const skip = (parsedPage - 1) * parsedLimit;
 
     const where = {};
 
@@ -23,6 +25,8 @@ class UserService {
 
     if (typeof isActive === 'boolean') {
       where.isActive = isActive;
+    } else if (typeof isActive === 'string') {
+      where.isActive = isActive.toLowerCase() === 'true';
     }
 
     if (search) {
@@ -37,12 +41,12 @@ class UserService {
 
     const { users, total } = await userRepository.findAll({
       skip,
-      take: limit,
+      take: parsedLimit,
       where,
       orderBy,
     });
 
-    const totalPages = Math.ceil(total / limit);
+    const totalPages = Math.ceil(total / parsedLimit);
 
     return {
       users,
