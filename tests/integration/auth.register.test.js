@@ -140,4 +140,46 @@ describe('Auth Register Integration Tests', () => {
     expect(res.body.success).toBe(true);
     expect(res.body.data.role).toBe('INSTRUCTOR');
   });
+
+  test('should reject registration when email is already registered (409)', async () => {
+    userRepository.existsByEmail.mockResolvedValue(true);
+
+    const res = await request(app)
+      .post('/api/v1/auth/register')
+      .send({
+        firstName: 'Duplicado',
+        lastName: 'Test',
+        email: 'aprendiz.duplicado@gmail.com',
+        password: 'Password123',
+      });
+
+    expect(res.status).toBe(409);
+    expect(res.body.success).toBe(false);
+    expect(res.body.message).toContain('ya está registrado');
+  });
+
+  test('should reject registration with weak password (400)', async () => {
+    const res = await request(app)
+      .post('/api/v1/auth/register')
+      .send({
+        firstName: 'Test',
+        lastName: 'Usuario',
+        email: 'test.usuario@gmail.com',
+        password: 'debil',
+      });
+
+    expect(res.status).toBe(400);
+    expect(res.body.success).toBe(false);
+  });
+
+  test('should reject registration with missing required fields (400)', async () => {
+    const res = await request(app)
+      .post('/api/v1/auth/register')
+      .send({
+        email: 'incompleto@gmail.com',
+      });
+
+    expect(res.status).toBe(400);
+    expect(res.body.success).toBe(false);
+  });
 });

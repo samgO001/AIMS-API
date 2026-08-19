@@ -6,92 +6,7 @@ const userValidator = require('../validators/user.validator');
 
 const router = Router();
 
-// ─── Public Routes ───────────────────────────────────────────────
-
-/**
- * @swagger
- * /auth/register:
- *   post:
- *     tags: [Auth]
- *     summary: Registrar un nuevo usuario
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required: [firstName, lastName, email, password]
- *             properties:
- *               firstName:
- *                 type: string
- *                 example: Juan
- *               lastName:
- *                 type: string
- *                 example: Pérez
- *               email:
- *                 type: string
- *                 format: email
- *                 example: juan.perez@email.com
- *               password:
- *                 type: string
- *                 format: password
- *                 example: MiPassword123
- *               role:
- *                 type: string
- *                 enum: [ADMIN, INSTRUCTOR, APRENDIZ]
- *                 default: APRENDIZ
- *               phone:
- *                 type: string
- *                 example: "+57 300 123 4567"
- *     responses:
- *       201:
- *         description: Usuario registrado exitosamente
- *       400:
- *         description: Error de validación
- *       409:
- *         description: Email ya registrado
- */
-router.post(
-  '/auth/register',
-  validate({ body: userValidator.createUser }),
-  userController.register
-);
-
-/**
- * @swagger
- * /auth/login:
- *   post:
- *     tags: [Auth]
- *     summary: Iniciar sesión
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required: [email, password]
- *             properties:
- *               email:
- *                 type: string
- *                 format: email
- *                 example: juan.perez@email.com
- *               password:
- *                 type: string
- *                 format: password
- *                 example: MiPassword123
- *     responses:
- *       200:
- *         description: Inicio de sesión exitoso
- *       401:
- *         description: Credenciales inválidas
- */
-router.post(
-  '/auth/login',
-  validate({ body: userValidator.login }),
-  userController.login
-);
-
-// ─── Protected Routes (Authenticated User) ──────────────────────
+// ─── Profile Routes (Authenticated User) ───────────────────────────
 
 /**
  * @swagger
@@ -107,7 +22,7 @@ router.post(
  *       401:
  *         description: No autorizado
  */
-router.get('/users/profile', authenticate, userController.getProfile);
+router.get('/profile', authenticate, userController.getProfile);
 
 /**
  * @swagger
@@ -140,47 +55,10 @@ router.get('/users/profile', authenticate, userController.getProfile);
  *         description: No autorizado
  */
 router.put(
-  '/users/profile',
+  '/profile',
   authenticate,
   validate({ body: userValidator.updateUser }),
   userController.updateProfile
-);
-
-/**
- * @swagger
- * /users/change-password:
- *   patch:
- *     tags: [Users]
- *     summary: Cambiar contraseña del usuario autenticado
- *     security:
- *       - bearerAuth: []
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required: [currentPassword, newPassword]
- *             properties:
- *               currentPassword:
- *                 type: string
- *                 format: password
- *               newPassword:
- *                 type: string
- *                 format: password
- *     responses:
- *       200:
- *         description: Contraseña actualizada exitosamente
- *       400:
- *         description: Contraseña actual incorrecta
- *       401:
- *         description: No autorizado
- */
-router.patch(
-  '/users/change-password',
-  authenticate,
-  validate({ body: userValidator.changePassword }),
-  userController.changePassword
 );
 
 // ─── Admin Routes ────────────────────────────────────────────────
@@ -235,10 +113,10 @@ router.patch(
  *       401:
  *         description: No autorizado
  *       403:
- *         description: Acceso denegado
+ *         description: Acceso denegado (Requiere ADMIN)
  */
 router.get(
-  '/users',
+  '/',
   authenticate,
   authorize('ADMIN'),
   validate({ query: userValidator.queryUsers }),
@@ -263,11 +141,17 @@ router.get(
  *     responses:
  *       200:
  *         description: Usuario obtenido exitosamente
+ *       400:
+ *         description: ID inválido (debe ser UUID)
+ *       401:
+ *         description: No autorizado
+ *       403:
+ *         description: Acceso denegado (Requiere ADMIN)
  *       404:
  *         description: Usuario no encontrado
  */
 router.get(
-  '/users/:id',
+  '/:id',
   authenticate,
   authorize('ADMIN'),
   validate({ params: userValidator.id }),
@@ -313,13 +197,19 @@ router.get(
  *     responses:
  *       200:
  *         description: Usuario actualizado exitosamente
+ *       400:
+ *         description: ID inválido o datos incorrectos
+ *       401:
+ *         description: No autorizado
+ *       403:
+ *         description: Acceso denegado (Requiere ADMIN)
  *       404:
  *         description: Usuario no encontrado
  *       409:
  *         description: Email ya en uso
  */
 router.put(
-  '/users/:id',
+  '/:id',
   authenticate,
   authorize('ADMIN'),
   validate({ params: userValidator.id, body: userValidator.updateUser }),
@@ -344,11 +234,17 @@ router.put(
  *     responses:
  *       200:
  *         description: Usuario eliminado exitosamente
+ *       400:
+ *         description: ID inválido
+ *       401:
+ *         description: No autorizado
+ *       403:
+ *         description: Acceso denegado (Requiere ADMIN)
  *       404:
  *         description: Usuario no encontrado
  */
 router.delete(
-  '/users/:id',
+  '/:id',
   authenticate,
   authorize('ADMIN'),
   validate({ params: userValidator.id }),
@@ -373,11 +269,17 @@ router.delete(
  *     responses:
  *       200:
  *         description: Estado del usuario actualizado
+ *       400:
+ *         description: ID inválido
+ *       401:
+ *         description: No autorizado
+ *       403:
+ *         description: Acceso denegado (Requiere ADMIN)
  *       404:
  *         description: Usuario no encontrado
  */
 router.patch(
-  '/users/:id/toggle-active',
+  '/:id/toggle-active',
   authenticate,
   authorize('ADMIN'),
   validate({ params: userValidator.id }),

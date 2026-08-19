@@ -13,6 +13,10 @@ jest.mock('bcryptjs', () => ({
 }));
 
 // Mock external dependencies to isolate test suite
+jest.mock('../../src/middlewares/rateLimiter', () => ({
+  authLimiter: (req, res, next) => next(),
+  apiLimiter: (req, res, next) => next(),
+}));
 jest.mock('../../src/repositories/user.repository');
 jest.mock('../../src/repositories/auth.repository');
 jest.mock('../../src/utils/mailer', () => ({
@@ -95,6 +99,24 @@ describe('Auth Module Complete Integration Tests', () => {
       expect(res.status).toBe(401);
       expect(res.body.success).toBe(false);
       expect(res.body.message).toBe('Credenciales inválidas');
+    });
+
+    test('should fail login when user email is not verified (403)', async () => {
+      userRepository.findByEmail.mockResolvedValue({
+        ...mockUser,
+        isEmailVerified: false,
+      });
+
+      const res = await request(app)
+        .post('/api/v1/auth/login')
+        .send({
+          email: 'juan.perez@soy.sena.edu.co',
+          password: 'Password123',
+        });
+
+      expect(res.status).toBe(403);
+      expect(res.body.success).toBe(false);
+      expect(res.body.message).toContain('Debes verificar tu correo electrónico');
     });
   });
 
@@ -195,13 +217,101 @@ describe('Auth Module Complete Integration Tests', () => {
     });
   });
 
-  describe('POST /api/v1/auth/validate-reset-token', () => {
-    test('should validate valid reset token', async () => {
+  describe('POST & GET /api/v1/auth/verify-email', () => {
+    test('should verify email successfully with valid token via POST', async () => {
+      authRepository.findUserByVerificationToken.mockResolvedValue(mockUser);
+      authRepository.verifyUserEmail.mockResolvedValue(true);
+
+      const res = await request(app)
+        .post('/api/v1/auth/verify-email')
+        .send({ token: 'valid-verification-token-string' });
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.message).toContain('Correo electrónico verificado exitosamente');
+      expect(authRepository.verifyUserEmail).toHaveBeenCalledWith(mockUser.id);
+    });
+
+    test('should verify email successfully with valid token via GET query param', async () => {
+      authRepository.findUserByVerificationToken.mockResolvedValue(mockUser);
+      authRepository.verifyUserEmail.mockResolvedValue(true);
+
+      const res = await request(app)
+        .get('/api/v1/auth/verify-email')
+        .query({ token: 'valid-verification-token-string' });
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+    });
+
+    test('should reject invalid or expired verification token (400)', async () => {
+      authRepository.findUserByVerificationToken.mockResolvedValue(null);
+
+      const res = await request(app)
+        .post('/api/v1/auth/verify-email')
+        .send({ token: 'invalid-token-here' });
+
+      expect(res.status).toBe(400);
+      expect(res.body.success).toBe(false);
+    });
+  });
+
+  describe('POST /api/v1/auth/resend-verification', () => {
+    test('should send verification email when user exists and is not verified', async () => {
+      userRepository.findByEmail.mockResolvedValue({ ...mockUser, isEmailVerified: false });
+      authRepository.updateVerificationToken.mockResolvedValue(true);
+
+      const res = await request(app)
+        .post('/api/v1/auth/resend-verification')
+        .send({ email: 'juan.perez@soy.sena.edu.co' });
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(authRepository.updateVerificationToken).toHaveBeenCalled();
+    });
+
+    test('should return 400 when user is already verified', async () => {
+      userRepository.findByEmail.mockResolvedValue({ ...mockUser, isEmailVerified: true });
+
+      const res = await request(app)
+        .post('/api/v1/auth/resend-verification')
+        .send({ email: 'juan.perez@soy.sena.edu.co' });
+
+      expect(res.status).toBe(400);
+      expect(res.body.success).toBe(false);
+      expect(res.body.message).toContain('ya se encuentra verificado');
+    });
+
+    test('should return generic 200 message when user email does not exist', async () => {
+      userRepository.findByEmail.mockResolvedValue(null);
+
+      const res = await request(app)
+        .post('/api/v1/auth/resend-verification')
+        .send({ email: 'no-existe@gmail.com' });
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+    });
+  });
+
+  describe('POST & GET /api/v1/auth/validate-reset-token', () => {
+    test('should validate valid reset token via POST', async () => {
       authRepository.findUserByResetToken.mockResolvedValue(mockUser);
 
       const res = await request(app)
         .post('/api/v1/auth/validate-reset-token')
         .send({ token: 'valid-reset-token' });
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+    });
+
+    test('should validate valid reset token via GET query param', async () => {
+      authRepository.findUserByResetToken.mockResolvedValue(mockUser);
+
+      const res = await request(app)
+        .get('/api/v1/auth/validate-reset-token')
+        .query({ token: 'valid-reset-token' });
 
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);
@@ -256,6 +366,35 @@ describe('Auth Module Complete Integration Tests', () => {
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);
       expect(authRepository.revokeAllUserRefreshTokens).toHaveBeenCalledWith(mockUser.id);
+    });
+
+    test('should fail when current password is wrong (400)', async () => {
+      userRepository.findByIdWithPassword.mockResolvedValue(mockUser);
+
+      const res = await request(app)
+        .post('/api/v1/auth/change-password')
+        .set('Authorization', `Bearer ${validAccessToken}`)
+        .send({
+          currentPassword: 'ContraseñaIncorrecta1',
+          newPassword: 'BrandNewPassword123',
+        });
+
+      expect(res.status).toBe(400);
+      expect(res.body.success).toBe(false);
+      expect(res.body.message).toContain('contraseña actual es incorrecta');
+    });
+
+    test('should fail when new password is weak / invalid format (400)', async () => {
+      const res = await request(app)
+        .post('/api/v1/auth/change-password')
+        .set('Authorization', `Bearer ${validAccessToken}`)
+        .send({
+          currentPassword: 'Password123',
+          newPassword: 'solominusculas',
+        });
+
+      expect(res.status).toBe(400);
+      expect(res.body.success).toBe(false);
     });
   });
 });

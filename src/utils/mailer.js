@@ -25,7 +25,7 @@ const sendEmail = async ({ to, subject, html, text }) => {
     console.log(`Subject: ${subject}`);
     console.log(`Content:\n${text || html}`);
     console.log('-------------------------------------\n');
-    return true;
+    return { success: false, simulated: true };
   }
 
   const mailOptions = {
@@ -37,17 +37,14 @@ const sendEmail = async ({ to, subject, html, text }) => {
   };
 
   try {
-    await transporter.sendMail(mailOptions);
-    return true;
+    const info = await transporter.sendMail(mailOptions);
+    console.log(`[EMAIL OK] Enviado a ${to} - messageId: ${info.messageId}`);
+    return { success: true, messageId: info.messageId };
   } catch (error) {
-    console.error('[ERROR] Error sending email:', error.message);
-    // Log simulation as fallback
-    console.log(`\n--- EMAIL FALLBACK (Error: ${error.message}) ---`);
-    console.log(`To: ${to}\nSubject: ${subject}\nContent: ${text || html}\n`);
-    return false;
+    console.error(`[EMAIL ERROR] No se pudo enviar a ${to}:`, error.message);
+    return { success: false, error: error.message };
   }
 };
-
 /**
  * Sends verification email to user
  */
@@ -96,6 +93,24 @@ const sendPasswordResetEmail = async (email, token) => {
     text: `Restablece tu contraseña con este token (expira en 1h): ${token} o ingresando a: ${resetUrl}`,
   });
 };
+
+module.exports = {
+  sendEmail,
+  sendVerificationEmail,
+  sendPasswordResetEmail,
+};
+
+if (transporter) {
+  transporter.verify((error) => {
+    if (error) {
+      console.error('[SMTP] Conexión fallida al arrancar:', error.message);
+    } else {
+      console.log('[SMTP] Servidor de correo listo y verificado ✅');
+    }
+  });
+} else {
+  console.warn('[SMTP] No configurado — los correos se simularán en consola, no se enviarán de verdad.');
+}
 
 module.exports = {
   sendEmail,
