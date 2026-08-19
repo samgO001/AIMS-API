@@ -153,6 +153,38 @@ describe('Users CRUD & Authorization Integration Tests', () => {
       expect(res.body.data).toHaveLength(3);
     });
 
+    test('should pass query filters and pagination to repository correctly (200)', async () => {
+      userRepository.findAll.mockResolvedValue({
+        users: [instructorUser],
+        total: 1,
+      });
+
+      const res = await request(app)
+        .get('/api/v1/users')
+        .query({
+          page: 1,
+          limit: 5,
+          role: 'INSTRUCTOR',
+          isActive: true,
+          search: 'Instructor',
+          sortBy: 'lastName',
+          order: 'asc',
+        })
+        .set('Authorization', `Bearer ${adminToken}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(userRepository.findAll).toHaveBeenCalledWith({
+        skip: 0,
+        take: 5,
+        where: expect.objectContaining({
+          role: 'INSTRUCTOR',
+          isActive: true,
+        }),
+        orderBy: { lastName: 'asc' },
+      });
+    });
+
     test('should deny access to APRENDIZ (403)', async () => {
       const res = await request(app)
         .get('/api/v1/users')
