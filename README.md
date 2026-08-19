@@ -2,17 +2,16 @@
 
 Backend RESTful API para la plataforma **AIMS (Academic Intelligent Management System)**, desarrollada con **Node.js**, **Express v5**, **Prisma 7** y **PostgreSQL**. Ofrece un sistema integral de autenticación con rotación de tokens (JWT), verificación de correo, recuperación de contraseña, asignación automática de roles por dominio de correo, control de acceso basado en roles (RBAC) y gestión completa de usuarios.
 
-
 ---
 
-## 🔗 Repositorio Frontend Relacionado
+## Repositorio Frontend Relacionado
 
 El repositorio con el código fuente del cliente de interfaz de usuario (**Frontend**) de AIMS se encuentra disponible en:
-* 🌐 **AIMS Frontend Repository:** [https://github.com/wsderfghbgv/AIMS](https://github.com/wsderfghbgv/AIMS)
+* **AIMS Frontend Repository:** [https://github.com/wsderfghbgv/AIMS](https://github.com/wsderfghbgv/AIMS)
 
 ---
 
-## 🛠️ Tecnologías Utilizadas
+## Tecnologías Utilizadas
 
 * **Entorno de ejecución:** Node.js (CommonJS)
 * **Framework Web:** Express v5 (`express`)
@@ -31,7 +30,7 @@ El repositorio con el código fuente del cliente de interfaz de usuario (**Front
 
 ---
 
-## 📋 Requisitos Previos
+## Requisitos Previos
 
 Antes de comenzar, asegúrate de contar con lo siguiente instalado en tu equipo:
 
@@ -41,7 +40,7 @@ Antes de comenzar, asegúrate de contar con lo siguiente instalado en tu equipo:
 
 ---
 
-## 🚀 Guía de Instalación y Configuración Paso a Paso
+## Guía de Instalación y Configuración Paso a Paso
 
 ### 1. Clonar el Repositorio
 
@@ -117,7 +116,7 @@ npm run prisma:studio
 
 ---
 
-## 🏃‍♂️ Ejecución de la Aplicación
+## Ejecución de la Aplicación
 
 ### Modo Desarrollo (con recarga automática)
 ```bash
@@ -131,7 +130,7 @@ npm start
 
 ---
 
-## 🌐 Documentación de la API y Health Check
+## Documentación de la API y Health Check
 
 Una vez que el servidor esté en ejecución en `http://localhost:3000`:
 
@@ -140,7 +139,7 @@ Una vez que el servidor esté en ejecución en `http://localhost:3000`:
 
 ---
 
-## 🛡️ Reglas de Asignación Automática de Roles
+## Reglas de Asignación Automática de Roles
 
 El sistema implementa una **política estricta de asignación automática de roles por dominio de correo** en el registro público (`POST /api/v1/auth/register`):
 
@@ -154,7 +153,7 @@ El sistema implementa una **política estricta de asignación automática de rol
 
 ---
 
-## 🔒 Mecanismos de Seguridad e Infraestructura
+## Mecanismos de Seguridad e Infraestructura
 
 * **Autenticación JWT Dual (Access & Refresh Tokens):**
   * **Access Token:** Firma de corta duración (15 minutos) enviada en la cabecera `Authorization: Bearer <token>`.
@@ -168,7 +167,7 @@ El sistema implementa una **política estricta de asignación automática de rol
 
 ---
 
-## 📌 Endpoints de la API
+## Endpoints de la API
 
 El prefijo base de la API es `/api/v1`.
 
@@ -204,7 +203,7 @@ El prefijo base de la API es `/api/v1`.
 
 ---
 
-## 🧪 Pruebas y Testing
+## Pruebas y Testing
 
 El proyecto cuenta con una suite completa de pruebas unitarias y de integración desarrolladas en **Jest** y **Supertest**.
 
@@ -220,7 +219,7 @@ npm test
 
 ---
 
-## 📁 Estructura del Proyecto
+## Estructura del Proyecto
 
 ```text
 AIMS-API/
@@ -279,7 +278,7 @@ AIMS-API/
 
 ---
 
-## 🔀 Flujo de Trabajo Git y Convención de Commits
+## Flujo de Trabajo Git y Convención de Commits
 
 El equipo utiliza una estrategia basada en **Git Flow** y la convención de **Conventional Commits**:
 
