@@ -36,3 +36,4 @@ const resolveRoleFromEmail = (email) => {
 module.exports = {
   resolveRoleFromEmail,
 };
+git
