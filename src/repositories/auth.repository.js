@@ -131,8 +131,34 @@ class AuthRepository {
       data: {
         revokedAt: new Date(),
       },
+
+      async saveMagicLinkToken(userId, hashedToken, expiresAt) {
+  return prisma.user.update({
+    where: { id: userId },
+    data: { magicLinkToken: hashedToken, magicLinkExpires: expiresAt },
+  });
+},
+
+async findUserByMagicLinkToken(hashedToken) {
+  return prisma.user.findFirst({
+    where: {
+      magicLinkToken: hashedToken,
+      magicLinkExpires: { gt: new Date() },
+    },
+  });
+},
+
+async clearMagicLinkToken(userId) {
+  return prisma.user.update({
+    where: { id: userId },
+    data: { magicLinkToken: null, magicLinkExpires: null },
+  });
+},
     });
+    
   }
 }
 
 module.exports = new AuthRepository();
+
+

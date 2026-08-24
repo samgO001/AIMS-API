@@ -3,6 +3,8 @@ const authController = require('../controllers/auth.controller');
 const validate = require('../middlewares/validate');
 const { authenticate } = require('../middlewares/auth');
 const { authLimiter } = require('../middlewares/rateLimiter');
+const { googleLoginSchema } = require('../validators/auth.validator'); // agregar al import existente
+
 const {
   registerSchema,
   loginSchema,
@@ -313,5 +315,12 @@ router.post('/change-password', authenticate, validate({ body: changePasswordSch
  *         description: Token no provisto o expirado
  */
 router.get('/me', authenticate, authController.getMe);
+
+router.post('/google', authLimiter, validate({ body: googleLoginSchema }), authController.googleLogin);
+
+router.post('/magic-link', authLimiter, validate({ body: emailOnlySchema }), authController.sendMagicLink);
+
+router.post('/magic-link/verify', authLimiter, validate({ body: verifyEmailSchema }), authController.verifyMagicLink);
+router.get('/magic-link/verify', authLimiter, authController.verifyMagicLink);
 
 module.exports = router;

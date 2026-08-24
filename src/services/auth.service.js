@@ -7,6 +7,10 @@ const AppError = require('../utils/appError');
 const { generateRandomToken, hashToken } = require('../utils/token');
 const { sendVerificationEmail, sendPasswordResetEmail } = require('../utils/mailer');
 const { resolveRoleFromEmail } = require('../utils/roleResolver');
+const { OAuth2Client } = require('google-auth-library');
+const { sendMagicLinkEmail } = require('../utils/mailer'); // agrégalo al import existente de mailer
+
+const googleClient = new OAuth2Client(env.googleClientId);
 
 const SALT_ROUNDS = 12;
 
@@ -14,6 +18,89 @@ class AuthService {
   /**
    * Register a new user and send verification email.
    */
+  async googleLogin(idToken) {
+    let payload;
+    try {
+      const ticket = await googleClient.verifyIdToken({
+        idToken,
+        audience: env.googleClientId,
+      });
+      payload = ticket.getPayload();
+    } catch (err) {
+      throw AppError.unauthorized('Token de Google inválido.');
+    }
+
+    const { email, given_name: firstName, family_name: lastName } = payload;
+
+    let user = await userRepository.findByEmail(email);
+    if (!user) {
+      user = await userRepository.createGoogleUser({
+        firstName: firstName || 'Usuario',
+        lastName: lastName || 'Google',
+        email,
+      });
+    }
+
+    if (!user.isActive) {
+      throw AppError.forbidden('La cuenta está desactivada. Contacta al administrador.');
+    }
+
+    const accessToken = this._generateAccessToken(user);
+    const refreshToken = await this._generateAndSaveRefreshToken(user.id);
+
+    const { password: _, emailVerificationToken, emailVerificationExpires, resetPasswordToken, resetPasswordExpires, magicLinkToken, magicLinkExpires, ...safeUser } = user;
+
+    return { user: safeUser, accessToken, refreshToken };
+  }
+
+  /**
+   * Envía un enlace de acceso sin contraseña (magic link).
+   */
+  async sendMagicLink(email) {
+    const user = await userRepository.findByEmail(email);
+    if (!user) {
+      // Mismo mensaje genérico que forgotPassword, para no filtrar si el correo existe
+      return { message: 'Si el correo existe en nuestra plataforma, se enviará un enlace de acceso.' };
+    }
+
+    if (!user.isActive) {
+      return { message: 'Si el correo existe en nuestra plataforma, se enviará un enlace de acceso.' };
+    }
+
+    const { unhashedToken, hashedToken } = generateRandomToken();
+    const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutos
+
+    await authRepository.saveMagicLinkToken(user.id, hashedToken, expiresAt);
+    await sendMagicLinkEmail(user.email, unhashedToken);
+
+    return { message: 'Si el correo existe en nuestra plataforma, se enviará un enlace de acceso.' };
+  }
+
+  /**
+   * Verifica el magic link y emite sesión.
+   */
+  async verifyMagicLink(unhashedToken) {
+    const hashed = hashToken(unhashedToken);
+    const user = await authRepository.findUserByMagicLinkToken(hashed);
+
+    if (!user) {
+      throw AppError.badRequest('El enlace es inválido o ha expirado.');
+    }
+
+    if (!user.isActive) {
+      throw AppError.forbidden('La cuenta está desactivada. Contacta al administrador.');
+    }
+
+    await authRepository.clearMagicLinkToken(user.id);
+
+    const accessToken = this._generateAccessToken(user);
+    const refreshToken = await this._generateAndSaveRefreshToken(user.id);
+
+    const { password: _, emailVerificationToken, emailVerificationExpires, resetPasswordToken, resetPasswordExpires, magicLinkToken, magicLinkExpires, ...safeUser } = user;
+
+    return { user: safeUser, accessToken, refreshToken };
+  }
+  
   async register(userData) {
     const resolvedRole = resolveRoleFromEmail(userData.email);
 
@@ -285,6 +372,9 @@ class AuthService {
 
     return unhashedToken;
   }
+  
 }
+
+
 
 module.exports = new AuthService();
