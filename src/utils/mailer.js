@@ -117,3 +117,32 @@ module.exports = {
   sendVerificationEmail,
   sendPasswordResetEmail,
 };
+
+const sendMagicLinkEmail = async (email, token) => {
+  const magicUrl = `${env.frontendUrl}/magic-verify?token=${token}`;
+  const html = `
+    <div style="font-family: Arial, sans-serif; padding: 20px;">
+      <h2>Tu enlace de acceso - AIMS</h2>
+      <p>Haz clic en el siguiente botón para iniciar sesión sin contraseña:</p>
+      <a href="${magicUrl}" style="background-color: #C59427; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block;">Iniciar sesión</a>
+      <p style="margin-top: 20px;">O copia y pega este token:</p>
+      <code style="background-color: #f4f4f4; padding: 5px 10px; border-radius: 3px;">${token}</code>
+      <p style="color: #d9534f; font-size: 13px; margin-top: 15px;">Este enlace expira en 15 minutos.</p>
+      <p style="color: #666; font-size: 12px; margin-top: 30px;">Si no solicitaste este acceso, ignora este correo.</p>
+    </div>
+  `;
+
+  return sendEmail({
+    to: email,
+    subject: 'Tu enlace de acceso - AIMS',
+    html,
+    text: `Inicia sesión con este token (expira en 15 min): ${token} o ingresando a: ${magicUrl}`,
+  });
+};
+
+module.exports = {
+  sendEmail,
+  sendVerificationEmail,
+  sendPasswordResetEmail,
+  sendMagicLinkEmail, // <-- agregar aquí
+};

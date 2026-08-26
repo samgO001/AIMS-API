@@ -54,6 +54,8 @@ class UserRepository {
     return prisma.user.delete({
       where: { id },
     });
+
+    
   }
 
   async existsByEmail(email, excludeId = null) {
@@ -82,7 +84,22 @@ class UserRepository {
       updatedAt: true,
       password: false,
     };
+    
   }
+  async createGoogleUser({ firstName, lastName, email }) {
+  return prisma.user.create({
+    data: {
+      firstName,
+      lastName,
+      email,
+      password: null,
+      authProvider: 'GOOGLE',
+      isEmailVerified: true, // Google ya verificó el correo
+    },
+  });
 }
+}
+
+
 
 module.exports = new UserRepository();
