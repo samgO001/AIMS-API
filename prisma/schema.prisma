@@ -7,41 +7,59 @@ datasource db {
 }
 
 enum Role {
-  
   ADMIN
   INSTRUCTOR
   APRENDIZ
-  
 }
+
 enum AuthProvider {
   LOCAL
   GOOGLE
 }
 
+enum TipoNotificacion {
+  INFO
+  ADVERTENCIA
+  URGENTE
+}
+
+enum EstadoAprendiz {
+  EN_FORMACION
+  EN_RIESGO
+  CONDICIONADO
+  RETIRO_VOLUNTARIO
+  CERTIFICADO
+}
+
 model User {
-  id                     String         @id @default(uuid())
-  firstName              String         @map("first_name")
-  lastName                String        @map("last_name")
-  email                  String         @unique
-  password               String?        // ahora opcional: usuarios de Google no tienen password local
-  authProvider           AuthProvider   @default(LOCAL) @map("auth_provider")
-  role                   Role           @default(APRENDIZ)
+  id                     String          @id @default(uuid())
+  firstName              String          @map("first_name")
+  lastName               String          @map("last_name")
+  email                  String          @unique
+  password               String?         // opcional: usuarios Google no tienen password local
+  authProvider           AuthProvider    @default(LOCAL) @map("auth_provider")
+  role                   Role            @default(APRENDIZ)
+  estadoAcademico        EstadoAprendiz? @default(EN_FORMACION) @map("estado_academico")
   phone                  String?
-  isActive               Boolean        @default(true) @map("is_active")
-  isEmailVerified        Boolean        @default(false) @map("is_email_verified")
-  emailVerificationToken String?        @map("email_verification_token")
-  emailVerificationExpires DateTime?     @map("email_verification_expires")
-  resetPasswordToken     String?        @map("reset_password_token")
-  resetPasswordExpires   DateTime?      @map("reset_password_expires")
-  magicLinkToken         String?        @map("magic_link_token")
-  magicLinkExpires       DateTime?      @map("magic_link_expires")
-  createdAt              DateTime       @default(now()) @map("created_at")
-  updatedAt              DateTime       @updatedAt @map("updated_at")
+  isActive               Boolean         @default(true) @map("is_active")
+  isEmailVerified        Boolean         @default(false) @map("is_email_verified")
+  emailVerificationToken String?         @map("email_verification_token")
+  emailVerificationExpires DateTime?      @map("email_verification_expires")
+  resetPasswordToken     String?         @map("reset_password_token")
+  resetPasswordExpires   DateTime?       @map("reset_password_expires")
+  magicLinkToken         String?         @map("magic_link_token")
+  magicLinkExpires       DateTime?       @map("magic_link_expires")
+  createdAt              DateTime        @default(now()) @map("created_at")
+  updatedAt              DateTime        @updatedAt @map("updated_at")
 
   refreshTokens          RefreshToken[]
   fichasComoInstructor   Ficha[]         @relation("InstructorFichas")
   fichasComoAprendiz     FichaAprendiz[] @relation("AprendizFichas")
   calificaciones         Calificacion[]  @relation("AprendizCalificaciones")
+  notificaciones         Notificacion[]
+  auditLogs              AuditLog[]
+  evidenciasComoInstructor Evidencia[]   @relation("InstructorEvidencias")
+  entregasComoAprendiz   EntregaEvidencia[] @relation("AprendizEntregas")
 
   @@map("users")
 }
@@ -120,6 +138,7 @@ model Ficha {
   aprendices    FichaAprendiz[]
   horarios      Horario[]
   calificaciones Calificacion[]
+  evidencias    Evidencia[]
 
   @@map("fichas")
 }
@@ -185,4 +204,58 @@ model Calificacion {
 
   @@unique([aprendizId, moduloId, periodo])
   @@map("calificaciones")
+}
+
+model Notificacion {
+  id        String           @id @default(uuid())
+  userId    String           @map("user_id")
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  titulo    String
+  mensaje   String
+  tipo      TipoNotificacion @default(INFO)
+  leido     Boolean          @default(false)
+  createdAt DateTime         @default(now()) @map("created_at")
+
+  @@map("notificaciones")
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String?  @map("user_id")
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  accion    String
+  detalles  String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("audit_logs")
+}
+
+model Evidencia {
+  id           String             @id @default(uuid())
+  titulo       String
+  descripcion  String
+  fechaLimite  DateTime           @map("fecha_limite")
+  fichaId      String             @map("ficha_id")
+  ficha        Ficha              @relation(fields: [fichaId], references: [id], onDelete: Cascade)
+  instructorId String             @map("instructor_id")
+  instructor   User               @relation("InstructorEvidencias", fields: [instructorId], references: [id], onDelete: Cascade)
+  createdAt    DateTime           @default(now()) @map("created_at")
+  entregas     EntregaEvidencia[]
+
+  @@map("evidencias")
+}
+
+model EntregaEvidencia {
+  id           String    @id @default(uuid())
+  evidenciaId  String    @map("evidencia_id")
+  evidencia    Evidencia @relation(fields: [evidenciaId], references: [id], onDelete: Cascade)
+  aprendizId   String    @map("aprendiz_id")
+  aprendiz     User      @relation("AprendizEntregas", fields: [aprendizId], references: [id], onDelete: Cascade)
+  archivoUrl   String?   @map("archivo_url")
+  comentario   String?
+  nota         Decimal?  @db.Decimal(3, 1)
+  fechaEntrega DateTime  @default(now()) @map("fecha_entrega")
+
+  @@unique([evidenciaId, aprendizId])
+  @@map("entrega_evidencias")
 }
