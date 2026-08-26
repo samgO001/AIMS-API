@@ -1,17 +1,16 @@
 const { Router } = require('express');
-const authRoutes = require('./auth.routes');
-const userRoutes = require('./user.routes');
-const adminRoutes = require('./admin.routes');
-const programaRoutes = require('./programa.routes');
-const fichaRoutes = require('./ficha.routes');
-const asistenciaRoutes = require('./asistencia.routes');
-const calificacionRoutes = require('./calificacion.routes');
-const horarioRoutes = require('./horario.routes');
-const notificacionRoutes = require('./notificacion.routes');
-const aprendizRoutes = require('./aprendiz.routes');
-
-const moduloRoutes = require('./modulo.routes');
-const evidenciaRoutes = require('./evidencia.routes');
+const authRoutes = require('../modules/auth/auth.routes');
+const userRoutes = require('../modules/users/user.routes');
+const adminRoutes = require('../modules/admin/admin.routes');
+const programaRoutes = require('../modules/programas/programa.routes');
+const fichaRoutes = require('../modules/fichas/ficha.routes');
+const asistenciaRoutes = require('../modules/asistencia/asistencia.routes');
+const calificacionRoutes = require('../modules/calificaciones/calificacion.routes');
+const horarioRoutes = require('../modules/horarios/horario.routes');
+const notificacionRoutes = require('../modules/notificaciones/notificacion.routes');
+const aprendizRoutes = require('../modules/aprendiz/aprendiz.routes');
+const moduloRoutes = require('../modules/modulos/modulo.routes');
+const evidenciaRoutes = require('../modules/evidencias/evidencia.routes');
 
 const router = Router();
 
