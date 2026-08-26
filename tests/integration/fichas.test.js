@@ -3,8 +3,8 @@ const jwt = require('jsonwebtoken');
 const app = require('../../src/app');
 const env = require('../../src/config/env');
 
-jest.mock('../../src/repositories/ficha.repository');
-const fichaRepository = require('../../src/repositories/ficha.repository');
+jest.mock('../../src/modules/fichas/ficha.repository');
+const fichaRepository = require('../../src/modules/fichas/ficha.repository');
 
 describe('Fichas Integration Tests', () => {
   const adminToken = jwt.sign({ id: 'admin-id', role: 'ADMIN' }, env.jwtSecret, { expiresIn: '1h' });

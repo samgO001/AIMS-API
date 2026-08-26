@@ -3,8 +3,8 @@ const jwt = require('jsonwebtoken');
 const app = require('../../src/app');
 const env = require('../../src/config/env');
 
-jest.mock('../../src/repositories/modulo.repository');
-const moduloRepository = require('../../src/repositories/modulo.repository');
+jest.mock('../../src/modules/modulos/modulo.repository');
+const moduloRepository = require('../../src/modules/modulos/modulo.repository');
 
 describe('Modulos Integration Tests', () => {
   const adminToken = jwt.sign({ id: 'admin-id', role: 'ADMIN' }, env.jwtSecret, { expiresIn: '1h' });
