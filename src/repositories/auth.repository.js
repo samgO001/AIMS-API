@@ -122,7 +122,7 @@ class AuthRepository {
   /**
    * Revoke all active Refresh Tokens for a user (e.g. on password change/reset)
    */
-  async revokeAllUserRefreshTokens(userId) {
+   async revokeAllUserRefreshTokens(userId) {
     return prisma.refreshToken.updateMany({
       where: {
         userId,
@@ -131,31 +131,30 @@ class AuthRepository {
       data: {
         revokedAt: new Date(),
       },
-
-      async saveMagicLinkToken(userId, hashedToken, expiresAt) {
-  return prisma.user.update({
-    where: { id: userId },
-    data: { magicLinkToken: hashedToken, magicLinkExpires: expiresAt },
-  });
-},
-
-async findUserByMagicLinkToken(hashedToken) {
-  return prisma.user.findFirst({
-    where: {
-      magicLinkToken: hashedToken,
-      magicLinkExpires: { gt: new Date() },
-    },
-  });
-},
-
-async clearMagicLinkToken(userId) {
-  return prisma.user.update({
-    where: { id: userId },
-    data: { magicLinkToken: null, magicLinkExpires: null },
-  });
-},
     });
-    
+  }
+
+  async saveMagicLinkToken(userId, hashedToken, expiresAt) {
+    return prisma.user.update({
+      where: { id: userId },
+      data: { magicLinkToken: hashedToken, magicLinkExpires: expiresAt },
+    });
+  }
+
+  async findUserByMagicLinkToken(hashedToken) {
+    return prisma.user.findFirst({
+      where: {
+        magicLinkToken: hashedToken,
+        magicLinkExpires: { gt: new Date() },
+      },
+    });
+  }
+
+  async clearMagicLinkToken(userId) {
+    return prisma.user.update({
+      where: { id: userId },
+      data: { magicLinkToken: null, magicLinkExpires: null },
+    });
   }
 }
 
