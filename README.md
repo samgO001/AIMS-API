@@ -1,6 +1,6 @@
 # AIMS API — Academic Intelligent Management System API
 
-Backend RESTful API para la plataforma **AIMS (Academic Intelligent Management System)**, desarrollada con **Node.js**, **Express v5**, **Prisma 7** y **PostgreSQL**. Ofrece un sistema integral de autenticación con rotación de tokens (JWT), verificación de correo, recuperación de contraseña, asignación automática de roles por dominio de correo, control de acceso basado en roles (RBAC) y gestión completa de usuarios.
+Backend RESTful API para la plataforma **AIMS (Academic Intelligent Management System)**, desarrollada con **Node.js**, **Express v5**, **Prisma 7** y **PostgreSQL Neon**. Ofrece un sistema integral de gestión académica inteligente, autenticación con rotación de tokens (JWT), control de acceso basado en roles (RBAC), validaciones con Joi, documentación OpenAPI/Swagger y gestión completa de programas, fichas, horarios, asistencias, calificaciones, módulos/competencias y evidencias.
 
 ---
 
@@ -36,7 +36,7 @@ Antes de comenzar, asegúrate de contar con lo siguiente instalado en tu equipo:
 
 * **Node.js** (v18.x o superior recomendado)
 * **npm** (incluido con Node.js)
-* **PostgreSQL** (instancia local o remota en ejecución)
+* **PostgreSQL** (instancia local o remota en Neon PostgreSQL)
 
 ---
 
@@ -102,12 +102,6 @@ Crea las tablas e índices necesarios en la base de datos PostgreSQL:
 npm run prisma:migrate
 ```
 
-#### Poblar la Base de Datos (Opcional - Seed)
-Inserta datos iniciales de prueba (como un usuario administrador predeterminado):
-```bash
-npm run prisma:seed
-```
-
 #### Explorar la Base de Datos con Prisma Studio (Opcional)
 Abre la interfaz gráfica de administración de datos de Prisma:
 ```bash
@@ -149,21 +143,7 @@ El sistema implementa una **política estricta de asignación automática de rol
    * Correo finalizado en `@soy.sena.edu.co` $\rightarrow$ Asigna rol **`APRENDIZ`**
    * Correo finalizado en `@sena.edu.co` $\rightarrow$ Asigna rol **`INSTRUCTOR`**
    * Cualquier otro dominio de correo $\rightarrow$ El registro es **rechazado** con código HTTP `400 Bad Request` (*"El dominio del correo no está permitido para registro"*).
-3. **Rol `ADMIN`:** El rol de Administrador **NO** se puede obtener mediante el registro público. Únicamente puede ser asignado por un usuario `ADMIN` existente desde el panel de administración (`PUT /api/v1/users/:id`) o cargado en la base de datos mediante el script de *seed*.
-
----
-
-## Mecanismos de Seguridad e Infraestructura
-
-* **Autenticación JWT Dual (Access & Refresh Tokens):**
-  * **Access Token:** Firma de corta duración (15 minutos) enviada en la cabecera `Authorization: Bearer <token>`.
-  * **Refresh Token Rotation:** Tokens de larga duración (7 días) almacenados de forma segura en la base de datos. Al solicitar un nuevo token de acceso (`POST /api/v1/auth/refresh-token`), el Refresh Token anterior se revoca y se expide uno nuevo para prevenir la reutilización no autorizada.
-* **Cierre de Sesión Seguro (Logout):** Al cerrar sesión (`POST /api/v1/auth/logout`), se revoca el Refresh Token en la base de datos.
-* **Cambio de Contraseña Seguro:** La ruta oficial `POST /api/v1/auth/change-password` invalida automáticamente todas las sesiones activas del usuario al actualizar la clave.
-* **Protección Hashing:** Las contraseñas se encriptan con Bcrypt utilizando un factor de costo seguro.
-* **Validación de Esquemas:** Todas las peticiones HTTP entrantes son validadas estrictamente con esquemas de Joi antes de ser procesadas por los controladores.
-* **Rate Limiting:** Protección contra ataques de fuerza bruta en endpoints sensibles de autenticación (`login`, `forgot-password`, `verify-email`).
-* **Control de Acceso basado en Roles (RBAC):** Middleware `authorize('ADMIN')` para proteger endpoints restringidos.
+3. **Rol `ADMIN`:** El rol de Administrador **NO** se puede obtener mediante el registro público. Únicamente puede ser asignado por un usuario `ADMIN` existente desde el panel de administración (`PUT /api/v1/users/:id`).
 
 ---
 
@@ -171,7 +151,7 @@ El sistema implementa una **política estricta de asignación automática de rol
 
 El prefijo base de la API es `/api/v1`.
 
-### Módulo Auth (`/api/v1/auth`)
+### 1. Módulo Auth (`/api/v1/auth`)
 
 | Método | Ruta | Autenticación | Rol | Descripción |
 | :--- | :--- | :--- | :--- | :--- |
@@ -186,10 +166,10 @@ El prefijo base de la API es `/api/v1`.
 | `POST` | `/api/v1/auth/reset-password` | Pública | Ninguno | Restablecer contraseña utilizando token seguro. |
 | `POST` | `/api/v1/auth/refresh-token` | Pública | Ninguno | Renovar Access Token usando Refresh Token Rotation. |
 | `POST` | `/api/v1/auth/logout` | Pública / Token | Ninguno | Cierre de sesión y revocación de Refresh Token. |
-| `POST` | `/api/v1/auth/change-password` | **Bearer JWT** | Cualquiera | **Ruta Oficial:** Cambia contraseña del usuario e invalida sesiones activas. |
+| `POST` | `/api/v1/auth/change-password` | **Bearer JWT** | Cualquiera | Cambia contraseña del usuario e invalida sesiones activas. |
 | `GET` | `/api/v1/auth/me` | **Bearer JWT** | Cualquiera | Obtener información del usuario autenticado en sesión. |
 
-### Módulo Users (`/api/v1/users`)
+### 2. Módulo Users (`/api/v1/users`)
 
 | Método | Ruta | Autenticación | Rol | Descripción |
 | :--- | :--- | :--- | :--- | :--- |
@@ -201,6 +181,84 @@ El prefijo base de la API es `/api/v1`.
 | `DELETE` | `/api/v1/users/:id` | **Bearer JWT** | **ADMIN** | Eliminar un usuario de la base de datos por UUID. |
 | `PATCH` | `/api/v1/users/:id/toggle-active` | **Bearer JWT** | **ADMIN** | Activar o desactivar el acceso de un usuario. |
 
+### 3. Módulo Programas (`/api/v1/programas`)
+
+| Método | Ruta | Autenticación | Rol | Descripción |
+| :--- | :--- | :--- | :--- | :--- |
+| `GET` | `/api/v1/programas` | **Bearer JWT** | Cualquiera | Listar todos los programas de formación. |
+| `GET` | `/api/v1/programas/:id` | **Bearer JWT** | Cualquiera | Obtener un programa de formación por ID. |
+| `POST` | `/api/v1/programas` | **Bearer JWT** | **ADMIN** | Crear un nuevo programa de formación. |
+| `PUT` | `/api/v1/programas/:id` | **Bearer JWT** | **ADMIN** | Actualizar un programa de formación. |
+| `DELETE` | `/api/v1/programas/:id` | **Bearer JWT** | **ADMIN** | Eliminar un programa de formación. |
+
+### 4. Módulo Módulos / Competencias (`/api/v1/modulos`)
+
+| Método | Ruta | Autenticación | Rol | Descripción |
+| :--- | :--- | :--- | :--- | :--- |
+| `GET` | `/api/v1/modulos` | **Bearer JWT** | Cualquiera | Listar módulos de formación (filtro opcional `programaId`). |
+| `GET` | `/api/v1/modulos/:id` | **Bearer JWT** | Cualquiera | Obtener detalle de un módulo por ID. |
+| `POST` | `/api/v1/modulos` | **Bearer JWT** | **ADMIN, INSTRUCTOR** | Crear un nuevo módulo de formación. |
+| `PUT` | `/api/v1/modulos/:id` | **Bearer JWT** | **ADMIN, INSTRUCTOR** | Actualizar un módulo de formación. |
+| `DELETE` | `/api/v1/modulos/:id` | **Bearer JWT** | **ADMIN** | Eliminar un módulo de formación. |
+
+### 5. Módulo Fichas (`/api/v1/fichas`)
+
+| Método | Ruta | Autenticación | Rol | Descripción |
+| :--- | :--- | :--- | :--- | :--- |
+| `GET` | `/api/v1/fichas` | **Bearer JWT** | Cualquiera | Listar fichas de formación. |
+| `GET` | `/api/v1/fichas/:id` | **Bearer JWT** | Cualquiera | Obtener detalle de una ficha por ID. |
+| `POST` | `/api/v1/fichas` | **Bearer JWT** | **ADMIN, INSTRUCTOR** | Crear una nueva ficha de formación. |
+| `PUT` | `/api/v1/fichas/:id` | **Bearer JWT** | **ADMIN, INSTRUCTOR** | Actualizar una ficha de formación. |
+| `DELETE` | `/api/v1/fichas/:id` | **Bearer JWT** | **ADMIN** | Eliminar una ficha de formación. |
+| `POST` | `/api/v1/fichas/:id/aprendices` | **Bearer JWT** | **ADMIN, INSTRUCTOR** | Asignar un aprendiz a una ficha. |
+| `DELETE` | `/api/v1/fichas/:id/aprendices/:aprendizId` | **Bearer JWT** | **ADMIN** | Remover un aprendiz de una ficha. |
+
+### 6. Módulo Horarios (`/api/v1/horarios`)
+
+| Método | Ruta | Autenticación | Rol | Descripción |
+| :--- | :--- | :--- | :--- | :--- |
+| `GET` | `/api/v1/horarios/mi-horario` | **Bearer JWT** | Cualquiera | Obtener el horario de clases del usuario en sesión. |
+| `POST` | `/api/v1/horarios` | **Bearer JWT** | **ADMIN, INSTRUCTOR** | Crear un bloque de horario para una ficha. |
+
+### 7. Módulo Asistencia (`/api/v1/asistencia`)
+
+| Método | Ruta | Autenticación | Rol | Descripción |
+| :--- | :--- | :--- | :--- | :--- |
+| `GET` | `/api/v1/asistencia/mis-asistencias` | **Bearer JWT** | Cualquiera | Obtener reporte y porcentaje de asistencia del aprendiz. |
+| `POST` | `/api/v1/asistencia/registrar` | **Bearer JWT** | **ADMIN, INSTRUCTOR** | Registrar asistencias masivas de una sesión. |
+
+### 8. Módulo Calificaciones (`/api/v1/calificaciones`)
+
+| Método | Ruta | Autenticación | Rol | Descripción |
+| :--- | :--- | :--- | :--- | :--- |
+| `GET` | `/api/v1/calificaciones/mis-calificaciones` | **Bearer JWT** | Cualquiera | Obtener boletín y promedio general de notas del aprendiz. |
+| `POST` | `/api/v1/calificaciones` | **Bearer JWT** | **ADMIN, INSTRUCTOR** | Registrar o actualizar nota de un aprendiz en un módulo. |
+
+### 9. Módulo Evidencias y Entregas (`/api/v1/evidencias`)
+
+| Método | Ruta | Autenticación | Rol | Descripción |
+| :--- | :--- | :--- | :--- | :--- |
+| `GET` | `/api/v1/evidencias` | **Bearer JWT** | Cualquiera | Listar evidencias académicas. |
+| `GET` | `/api/v1/evidencias/:id` | **Bearer JWT** | Cualquiera | Obtener detalle de una evidencia. |
+| `POST` | `/api/v1/evidencias` | **Bearer JWT** | **ADMIN, INSTRUCTOR** | Crear una nueva evidencia académica. |
+| `PUT` | `/api/v1/evidencias/:id` | **Bearer JWT** | **ADMIN, INSTRUCTOR** | Actualizar una evidencia. |
+| `DELETE` | `/api/v1/evidencias/:id` | **Bearer JWT** | **ADMIN, INSTRUCTOR** | Eliminar una evidencia. |
+| `POST` | `/api/v1/evidencias/:id/entregas` | **Bearer JWT** | **APRENDIZ, ADMIN** | Enviar entrega de trabajo/evidencia. |
+| `GET` | `/api/v1/evidencias/:id/entregas` | **Bearer JWT** | **ADMIN, INSTRUCTOR** | Obtener entregas recibidas de una evidencia. |
+| `PUT` | `/api/v1/evidencias/:id/entregas/:entregaId/calificar` | **Bearer JWT** | **ADMIN, INSTRUCTOR** | Calificar una entrega recibida. |
+
+### 10. Módulos Aprendiz, Notificaciones y Admin (`/api/v1`)
+
+| Método | Ruta | Autenticación | Rol | Descripción |
+| :--- | :--- | :--- | :--- | :--- |
+| `GET` | `/api/v1/aprendiz/dashboard` | **Bearer JWT** | **APRENDIZ, ADMIN** | Obtener métricas resumidas del dashboard del aprendiz. |
+| `GET` | `/api/v1/notificaciones` | **Bearer JWT** | Cualquiera | Obtener lista de notificaciones del usuario. |
+| `PATCH` | `/api/v1/notificaciones/:id/read` | **Bearer JWT** | Cualquiera | Marcar notificación individual como leída. |
+| `PATCH` | `/api/v1/notificaciones/read-all` | **Bearer JWT** | Cualquiera | Marcar todas las notificaciones como leídas. |
+| `GET` | `/api/v1/admin/stats` | **Bearer JWT** | **ADMIN** | Obtener estadísticas globales del sistema. |
+| `GET` | `/api/v1/admin/recent-activity` | **Bearer JWT** | **ADMIN** | Obtener historial de auditoría y actividad reciente. |
+| `POST` | `/api/v1/admin/users` | **Bearer JWT** | **ADMIN** | Crear usuarios con rol directo por administrador. |
+
 ---
 
 ## Pruebas y Testing
@@ -208,8 +266,8 @@ El prefijo base de la API es `/api/v1`.
 El proyecto cuenta con una suite completa de pruebas unitarias y de integración desarrolladas en **Jest** y **Supertest**.
 
 Actualmente se encuentran implementadas y pasando al 100%:
-* **3 Test Suites:** (`tests/integration/auth.register.test.js`, `tests/integration/auth.endpoints.test.js`, `tests/unit/roleResolver.test.js`).
-* **26 Pruebas Totales (26/26 pasadas exitosamente).**
+* **13 Test Suites:** (`users.crud.test.js`, `auth.endpoints.test.js`, `auth.register.test.js`, `programas.test.js`, `fichas.test.js`, `asistencia.test.js`, `calificaciones.test.js`, `horarios.test.js`, `admin.test.js`, `modulos.test.js`, `evidencias.test.js`, `app.test.js`, `roleResolver.test.js`).
+* **96 Pruebas Totales (96/96 pasadas exitosamente).**
 
 ### Ejecutar la Suite de Pruebas
 
@@ -230,9 +288,8 @@ AIMS-API/
 ├── prisma.config.ts            # Configuración de Prisma 7
 ├── requests.http               # Colección de peticiones de prueba HTTP
 ├── prisma/
-│   ├── migrations/             # Historial de migraciones SQL de la BD
-│   ├── schema.prisma           # Modelos y esquemas de Prisma ORM
-│   └── seed.js                 # Script de sembrado de datos iniciales
+233: │   ├── migrations/             # Historial de migraciones SQL de la BD
+234: │   └── schema.prisma           # Modelos y esquemas de Prisma ORM
 ├── src/
 │   ├── app.js                  # Configuración de Express, middlewares y Swagger
 │   ├── server.js               # Punto de entrada y arranque del servidor HTTP
@@ -240,8 +297,18 @@ AIMS-API/
 │   │   ├── database.js
 │   │   ├── env.js
 │   │   └── swagger.js
-│   ├── controllers/            # Controladores de peticiones de Auth y Usuarios
+│   ├── controllers/            # Controladores Express (10 módulos)
+│   │   ├── admin.controller.js
+│   │   ├── aprendiz.controller.js
+│   │   ├── asistencia.controller.js
 │   │   ├── auth.controller.js
+│   │   ├── calificacion.controller.js
+│   │   ├── evidencia.controller.js
+│   │   ├── ficha.controller.js
+│   │   ├── horario.controller.js
+│   │   ├── modulo.controller.js
+│   │   ├── notificacion.controller.js
+│   │   ├── programa.controller.js
 │   │   └── user.controller.js
 │   ├── middlewares/            # Middlewares de Auth, Errores, Rate Limit y Validación
 │   │   ├── auth.js
@@ -249,30 +316,76 @@ AIMS-API/
 │   │   ├── rateLimiter.js
 │   │   └── validate.js
 │   ├── repositories/           # Capa de acceso a datos con Prisma Client
+│   │   ├── admin.repository.js
+│   │   ├── asistencia.repository.js
 │   │   ├── auth.repository.js
+│   │   ├── calificacion.repository.js
+│   │   ├── evidencia.repository.js
+│   │   ├── ficha.repository.js
+│   │   ├── horario.repository.js
+│   │   ├── modulo.repository.js
+│   │   ├── notificacion.repository.js
+│   │   ├── programa.repository.js
 │   │   └── user.repository.js
-│   ├── routes/                 # Definición de rutas del sistema
+│   ├── routes/                 # Rutas Express documentadas con Swagger
 │   │   ├── index.js
+│   │   ├── admin.routes.js
+│   │   ├── aprendiz.routes.js
+│   │   ├── asistencia.routes.js
 │   │   ├── auth.routes.js
+│   │   ├── calificacion.routes.js
+│   │   ├── evidencia.routes.js
+│   │   ├── ficha.routes.js
+│   │   ├── horario.routes.js
+│   │   ├── modulo.routes.js
+│   │   ├── notificacion.routes.js
+│   │   ├── programa.routes.js
 │   │   └── user.routes.js
 │   ├── services/               # Lógica de negocio y casos de uso
+│   │   ├── admin.service.js
+│   │   ├── asistencia.service.js
 │   │   ├── auth.service.js
+│   │   ├── calificacion.service.js
+│   │   ├── evidencia.service.js
+│   │   ├── ficha.service.js
+│   │   ├── horario.service.js
+│   │   ├── modulo.service.js
+│   │   ├── notificacion.service.js
+│   │   ├── programa.service.js
 │   │   └── user.service.js
-│   ├── utils/                  # Clases de error, mailer, JWT y roleResolver
+│   ├── utils/                  # Loggers, mailer, JWT, roleResolver y respuestas
 │   │   ├── appError.js
+│   │   ├── auditLogger.js
 │   │   ├── catchAsync.js
 │   │   ├── mailer.js
 │   │   ├── response.js
 │   │   ├── roleResolver.js
 │   │   └── token.js
 │   └── validators/             # Esquemas de validación de Joi
+│       ├── asistencia.validator.js
 │       ├── auth.validator.js
+│       ├── calificacion.validator.js
+│       ├── evidencia.validator.js
+│       ├── ficha.validator.js
+│       ├── horario.validator.js
+│       ├── modulo.validator.js
+│       ├── programa.validator.js
 │       └── user.validator.js
 └── tests/
-    ├── integration/            # Pruebas de integración de endpoints de Auth
+    ├── integration/            # Pruebas de integración
+    │   ├── admin.test.js
+    │   ├── app.test.js
+    │   ├── asistencia.test.js
     │   ├── auth.endpoints.test.js
-    │   └── auth.register.test.js
-    └── unit/                   # Pruebas unitarias de roleResolver
+    │   ├── auth.register.test.js
+    │   ├── calificaciones.test.js
+    │   ├── evidencias.test.js
+    │   ├── fichas.test.js
+    │   ├── horarios.test.js
+    │   ├── modulos.test.js
+    │   ├── programas.test.js
+    │   └── users.crud.test.js
+    └── unit/                   # Pruebas unitarias
         └── roleResolver.test.js
 ```
 
@@ -286,14 +399,12 @@ El equipo utiliza una estrategia basada en **Git Flow** y la convención de **Co
 * `main`: Rama de código estable en producción.
 * `develop`: Rama principal de integración para desarrollo.
 * `feature/<nombre-feature>`: Ramas para el desarrollo de nuevas características.
-* `hotfix/<version>` / `release/<version>`: Ramas para corrección rápida de errores o preparación de lanzamientos.
 
 ### Formato de Commits
-Formato estándar: `<tipo>(<alcance>): <descripción>`
+Formato estándar en español: `<tipo>(<alcance>): <descripción>`
 
-* `feat(auth)`: Agregar nueva característica en autenticación.
-* `fix(users)`: Corrección de error en módulo de usuarios.
-* `test(auth)`: Agregar o actualizar pruebas.
+* `feat(modulos)`: Agregar nueva característica en módulos/competencias.
+* `fix(asistencia)`: Corrección de error en módulo de asistencias.
+* `test(integration)`: Agregar o actualizar pruebas de integración.
 * `docs(readme)`: Actualizaciones en documentación.
-* `refactor(code)`: Mejoras de código sin cambiar comportamiento.
-* `chore(deps)`: Tareas de mantenimiento o actualización de dependencias.
+* `chore(repo)`: Tareas de mantenimiento o limpieza.
