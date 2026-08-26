@@ -1,11 +1,32 @@
 const { Router } = require('express');
-const authRoutes = require('./auth.routes');
-const userRoutes = require('./user.routes');
+const authRoutes = require('../modules/auth/auth.routes');
+const userRoutes = require('../modules/users/user.routes');
+const adminRoutes = require('../modules/admin/admin.routes');
+const programaRoutes = require('../modules/programas/programa.routes');
+const fichaRoutes = require('../modules/fichas/ficha.routes');
+const asistenciaRoutes = require('../modules/asistencia/asistencia.routes');
+const calificacionRoutes = require('../modules/calificaciones/calificacion.routes');
+const horarioRoutes = require('../modules/horarios/horario.routes');
+const notificacionRoutes = require('../modules/notificaciones/notificacion.routes');
+const aprendizRoutes = require('../modules/aprendiz/aprendiz.routes');
+const moduloRoutes = require('../modules/modulos/modulo.routes');
+const evidenciaRoutes = require('../modules/evidencias/evidencia.routes');
 
 const router = Router();
 
 router.use('/auth', authRoutes);
 router.use('/users', userRoutes);
+router.use('/admin', adminRoutes);
+router.use('/programas', programaRoutes);
+router.use('/fichas', fichaRoutes);
+router.use('/asistencia', asistenciaRoutes);
+router.use('/calificaciones', calificacionRoutes);
+router.use('/horarios', horarioRoutes);
+router.use('/notificaciones', notificacionRoutes);
+router.use('/aprendiz', aprendizRoutes);
+router.use('/modulos', moduloRoutes);
+router.use('/evidencias', evidenciaRoutes);
 
 module.exports = router;
+
 
