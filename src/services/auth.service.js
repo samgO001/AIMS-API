@@ -5,7 +5,7 @@ const userRepository = require('../repositories/user.repository');
 const authRepository = require('../repositories/auth.repository');
 const AppError = require('../utils/appError');
 const { generateRandomToken, hashToken } = require('../utils/token');
-const { sendVerificationEmail, sendPasswordResetEmail } = require('../utils/mailer');
+const { sendVerificationEmail, sendPasswordResetEmail, sendMagicLinkEmail } = require('../utils/mailer');
 const { resolveRoleFromEmail } = require('../utils/roleResolver');
 
 const SALT_ROUNDS = 12;
@@ -257,6 +257,119 @@ class AuthService {
       throw AppError.notFound('Usuario no encontrado');
     }
     return user;
+  }
+
+  /**
+   * Request magic link login email.
+   */
+  async sendMagicLink(email) {
+    const user = await userRepository.findByEmail(email);
+    if (!user) {
+      return { message: 'Si el correo está registrado, recibirás un enlace de acceso.' };
+    }
+
+    if (!user.isActive) {
+      throw AppError.forbidden('La cuenta está desactivada. Contacta al administrador.');
+    }
+
+    const { unhashedToken, hashedToken } = generateRandomToken();
+    const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
+
+    await authRepository.saveMagicLinkToken(user.id, hashedToken, expiresAt);
+    await sendMagicLinkEmail(user.email, unhashedToken);
+
+    return { message: 'Si el correo está registrado, recibirás un enlace de acceso.' };
+  }
+
+  /**
+   * Verify magic link token and log in.
+   */
+  async verifyMagicLink(unhashedToken) {
+    const hashed = hashToken(unhashedToken);
+    const user = await authRepository.findUserByMagicLinkToken(hashed);
+
+    if (!user) {
+      throw AppError.badRequest('El enlace de acceso es inválido o ha expirado.');
+    }
+
+    if (!user.isActive) {
+      throw AppError.forbidden('La cuenta está desactivada.');
+    }
+
+    await authRepository.clearMagicLinkToken(user.id);
+
+    const accessToken = this._generateAccessToken(user);
+    const refreshToken = await this._generateAndSaveRefreshToken(user.id);
+
+    const { password, emailVerificationToken, emailVerificationExpires, resetPasswordToken, resetPasswordExpires, magicLinkToken, magicLinkExpires, ...safeUser } = user;
+
+    return {
+      user: safeUser,
+      accessToken,
+      refreshToken,
+      message: 'Inicio de sesión exitoso.',
+    };
+  }
+
+  /**
+   * Authenticate or register with Google OAuth idToken.
+   */
+  async googleLogin(idToken) {
+    if (!idToken) {
+      throw AppError.badRequest('El token de Google es requerido');
+    }
+
+    let payload;
+    try {
+      payload = jwt.decode(idToken);
+      if (!payload || !payload.email) {
+        throw new Error('Payload inválido');
+      }
+    } catch (err) {
+      throw AppError.badRequest('El idToken de Google no es válido');
+    }
+
+    const email = payload.email.toLowerCase();
+    let user = await userRepository.findByEmail(email);
+
+    if (!user) {
+      const role = resolveRoleFromEmail(email);
+      const firstName = payload.given_name || payload.name || 'Usuario';
+      const lastName = payload.family_name || 'Google';
+      const randomPassword = await bcrypt.hash(generateRandomToken().unhashedToken, SALT_ROUNDS);
+
+      user = await userRepository.create({
+        firstName,
+        lastName,
+        email,
+        password: randomPassword,
+        role,
+        googleId: payload.sub || null,
+        isEmailVerified: true,
+        isActive: true,
+      });
+    } else {
+      if (!user.isActive) {
+        throw AppError.forbidden('La cuenta está desactivada. Contacta al administrador.');
+      }
+      if (!user.isEmailVerified || !user.googleId) {
+        await userRepository.update(user.id, {
+          isEmailVerified: true,
+          googleId: payload.sub || user.googleId,
+        });
+      }
+    }
+
+    const accessToken = this._generateAccessToken(user);
+    const refreshToken = await this._generateAndSaveRefreshToken(user.id);
+
+    const { password, emailVerificationToken, emailVerificationExpires, resetPasswordToken, resetPasswordExpires, ...safeUser } = user;
+
+    return {
+      user: safeUser,
+      accessToken,
+      refreshToken,
+    };
   }
 
   // --- Helper Methods ---

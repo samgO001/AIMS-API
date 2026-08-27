@@ -1,7 +1,34 @@
+const bcrypt = require('bcryptjs');
 const userRepository = require('../repositories/user.repository');
 const AppError = require('../utils/appError');
+const { generateRandomToken } = require('../utils/token');
+
+const SALT_ROUNDS = 12;
 
 class UserService {
+  async create(userData) {
+    const emailExists = await userRepository.existsByEmail(userData.email);
+    if (emailExists) {
+      throw AppError.conflict('El email ya está registrado');
+    }
+
+    const rawPassword = userData.password || 'Aims2026TempPass!';
+    const hashedPassword = await bcrypt.hash(rawPassword, SALT_ROUNDS);
+
+    const user = await userRepository.create({
+      firstName: userData.firstName,
+      lastName: userData.lastName,
+      email: userData.email,
+      password: hashedPassword,
+      role: userData.role || 'APRENDIZ',
+      phone: userData.phone || null,
+      especialidad: userData.especialidad || null,
+      isEmailVerified: true,
+      isActive: true,
+    });
+
+    return user;
+  }
   async findAll(queryParams) {
     const {
       page = 1,

@@ -367,4 +367,46 @@ describe('Users CRUD & Authorization Integration Tests', () => {
       expect(res.status).toBe(403);
     });
   });
+
+  // ─── 7. CREATE USER (ADMIN ONLY) ──────────────────────────────────────────
+  describe('POST /api/v1/users', () => {
+    test('should allow ADMIN to create a user directly (201)', async () => {
+      userRepository.existsByEmail.mockResolvedValue(false);
+      userRepository.create.mockResolvedValue({
+        id: 'new-user-uuid',
+        firstName: 'Valentina',
+        lastName: 'Torres',
+        email: 'v.torres@sena.edu.co',
+        role: 'INSTRUCTOR',
+        isActive: true,
+      });
+
+      const res = await request(app)
+        .post('/api/v1/users')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({
+          firstName: 'Valentina',
+          lastName: 'Torres',
+          email: 'v.torres@sena.edu.co',
+          role: 'INSTRUCTOR',
+        });
+
+      expect(res.status).toBe(201);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.role).toBe('INSTRUCTOR');
+    });
+
+    test('should deny user creation to APRENDIZ (403)', async () => {
+      const res = await request(app)
+        .post('/api/v1/users')
+        .set('Authorization', `Bearer ${aprendizToken}`)
+        .send({
+          firstName: 'Valentina',
+          lastName: 'Torres',
+          email: 'v.torres@sena.edu.co',
+        });
+
+      expect(res.status).toBe(403);
+    });
+  });
 });

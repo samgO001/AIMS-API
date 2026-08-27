@@ -1,8 +1,12 @@
 const userService = require('../services/user.service');
-const { success, paginated } = require('../utils/response');
+const { success, created, paginated } = require('../utils/response');
 const catchAsync = require('../utils/catchAsync');
 
 class UserController {
+  create = catchAsync(async (req, res) => {
+    const user = await userService.create(req.body);
+    return created(res, user, 'Usuario creado exitosamente');
+  });
   getAll = catchAsync(async (req, res) => {
     const { users, pagination } = await userService.findAll(req.query);
     return paginated(res, users, pagination, 'Usuarios obtenidos exitosamente');

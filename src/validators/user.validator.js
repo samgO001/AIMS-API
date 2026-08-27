@@ -61,7 +61,25 @@ const queryUsers = Joi.object({
   order: Joi.string().valid('asc', 'desc').default('desc'),
 });
 
+const createUser = Joi.object({
+  firstName: Joi.string().trim().min(2).max(50).required().messages({
+    'string.empty': 'El nombre es obligatorio',
+  }),
+  lastName: Joi.string().trim().min(2).max(50).required().messages({
+    'string.empty': 'El apellido es obligatorio',
+  }),
+  email: Joi.string().trim().lowercase().email().required().messages({
+    'string.empty': 'El email es obligatorio',
+    'string.email': 'Debe proporcionar un email válido',
+  }),
+  password: Joi.string().min(8).max(100).optional(),
+  role: Joi.string().valid(...ROLES).optional(),
+  phone: Joi.string().trim().allow(null, '').optional(),
+  especialidad: Joi.string().trim().allow(null, '').optional(),
+});
+
 module.exports = {
+  createUser,
   updateUser,
   queryUsers,
   id,

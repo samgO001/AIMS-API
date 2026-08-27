@@ -67,6 +67,24 @@ class AuthController {
     const user = await authService.getMe(req.user.id);
     return success(res, user, 'Perfil obtenido exitosamente');
   });
+
+  sendMagicLink = catchAsync(async (req, res) => {
+    const { email } = req.body;
+    const result = await authService.sendMagicLink(email);
+    return success(res, null, result.message);
+  });
+
+  verifyMagicLink = catchAsync(async (req, res) => {
+    const token = req.query.token || req.body.token;
+    const result = await authService.verifyMagicLink(token);
+    return success(res, result, result.message);
+  });
+
+  googleLogin = catchAsync(async (req, res) => {
+    const { idToken } = req.body;
+    const result = await authService.googleLogin(idToken);
+    return success(res, result, 'Inicio de sesión con Google exitoso');
+  });
 }
 
 module.exports = new AuthController();

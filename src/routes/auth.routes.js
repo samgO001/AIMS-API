@@ -11,6 +11,7 @@ const {
   resetPasswordSchema,
   refreshTokenSchema,
   changePasswordSchema,
+  googleLoginSchema,
 } = require('../validators/auth.validator');
 
 const router = Router();
@@ -90,6 +91,33 @@ router.post('/register', validate({ body: registerSchema }), authController.regi
  *         description: Demasiados intentos (rate limit)
  */
 router.post('/login', authLimiter, validate({ body: loginSchema }), authController.login);
+
+/**
+ * @swagger
+ * /auth/magic-link:
+ *   post:
+ *     summary: Enviar correo de enlace de acceso directo (Magic Link)
+ *     tags: [Auth]
+ */
+router.post('/magic-link', authLimiter, validate({ body: emailOnlySchema }), authController.sendMagicLink);
+
+/**
+ * @swagger
+ * /auth/magic-link/verify:
+ *   post:
+ *     summary: Verificar token de Magic Link e iniciar sesión
+ *     tags: [Auth]
+ */
+router.post('/magic-link/verify', authLimiter, authController.verifyMagicLink);
+
+/**
+ * @swagger
+ * /auth/google:
+ *   post:
+ *     summary: Iniciar sesión o registrarse con Google OAuth (idToken)
+ *     tags: [Auth]
+ */
+router.post('/google', authLimiter, validate({ body: googleLoginSchema }), authController.googleLogin);
 
 /**
  * @swagger

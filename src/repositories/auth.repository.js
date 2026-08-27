@@ -133,6 +133,46 @@ class AuthRepository {
       },
     });
   }
+  /**
+   * Save magic link token and expiration date
+   */
+  async saveMagicLinkToken(userId, token, expiresAt) {
+    return prisma.user.update({
+      where: { id: userId },
+      data: {
+        magicLinkToken: token,
+        magicLinkExpires: expiresAt,
+      },
+    });
+  }
+
+  /**
+   * Find user by magic link token and ensure non-expired
+   */
+  async findUserByMagicLinkToken(token) {
+    return prisma.user.findFirst({
+      where: {
+        magicLinkToken: token,
+        magicLinkExpires: {
+          gt: new Date(),
+        },
+      },
+    });
+  }
+
+  /**
+   * Clear magic link token fields
+   */
+  async clearMagicLinkToken(userId) {
+    return prisma.user.update({
+      where: { id: userId },
+      data: {
+        magicLinkToken: null,
+        magicLinkExpires: null,
+        isEmailVerified: true,
+      },
+    });
+  }
 }
 
 module.exports = new AuthRepository();

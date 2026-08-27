@@ -125,6 +125,23 @@ router.get(
 
 /**
  * @swagger
+ * /users:
+ *   post:
+ *     tags: [Users]
+ *     summary: Crear un nuevo usuario directamente (solo ADMIN)
+ *     security:
+ *       - bearerAuth: []
+ */
+router.post(
+  '/',
+  authenticate,
+  authorize('ADMIN'),
+  validate({ body: userValidator.createUser }),
+  userController.create
+);
+
+/**
+ * @swagger
  * /users/{id}:
  *   get:
  *     tags: [Users]
