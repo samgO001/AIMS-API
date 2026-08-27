@@ -1,5 +1,5 @@
 const mensajeRepository = require('../repositories/mensaje.repository');
-const userRepository = require('../repositories/user.repository');
+const userRepository = require('../modules/users/user.repository');
 const AppError = require('../utils/appError');
 
 class MensajeService {

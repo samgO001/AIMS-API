@@ -1,6 +1,6 @@
 const matriculaRepository = require('../repositories/matricula.repository');
 const fichaRepository = require('../repositories/ficha.repository');
-const userRepository = require('../repositories/user.repository');
+const userRepository = require('../modules/users/user.repository');
 const AppError = require('../utils/appError');
 
 class MatriculaService {
