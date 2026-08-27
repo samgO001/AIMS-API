@@ -2,13 +2,13 @@ const request = require('supertest');
 const app = require('../../src/app');
 
 // Mock dependencies to isolate integration tests from active database / SMTP services
-jest.mock('../../src/repositories/user.repository');
+jest.mock('../../src/modules/users/user.repository');
 jest.mock('../../src/utils/mailer', () => ({
   sendVerificationEmail: jest.fn().mockResolvedValue(true),
   sendPasswordResetEmail: jest.fn().mockResolvedValue(true),
 }));
 
-const userRepository = require('../../src/repositories/user.repository');
+const userRepository = require('../../src/modules/users/user.repository');
 
 describe('Auth Register Integration Tests', () => {
   beforeEach(() => {

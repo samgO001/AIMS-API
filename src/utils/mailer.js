@@ -45,6 +45,7 @@ const sendEmail = async ({ to, subject, html, text }) => {
     return { success: false, error: error.message };
   }
 };
+
 /**
  * Sends verification email to user
  */
@@ -136,4 +137,3 @@ module.exports = {
   sendPasswordResetEmail,
   sendMagicLinkEmail,
 };
-

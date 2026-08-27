@@ -17,16 +17,16 @@ jest.mock('../../src/middlewares/rateLimiter', () => ({
   authLimiter: (req, res, next) => next(),
   apiLimiter: (req, res, next) => next(),
 }));
-jest.mock('../../src/repositories/user.repository');
-jest.mock('../../src/repositories/auth.repository');
+jest.mock('../../src/modules/users/user.repository');
+jest.mock('../../src/modules/auth/auth.repository');
 jest.mock('../../src/utils/mailer', () => ({
   sendVerificationEmail: jest.fn().mockResolvedValue(true),
   sendPasswordResetEmail: jest.fn().mockResolvedValue(true),
   sendMagicLinkEmail: jest.fn().mockResolvedValue(true),
 }));
 
-const userRepository = require('../../src/repositories/user.repository');
-const authRepository = require('../../src/repositories/auth.repository');
+const userRepository = require('../../src/modules/users/user.repository');
+const authRepository = require('../../src/modules/auth/auth.repository');
 
 describe('Auth Module Complete Integration Tests', () => {
   const mockUser = {
