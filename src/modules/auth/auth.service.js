@@ -264,11 +264,25 @@ class AuthService {
     let payload;
     try {
       payload = jwt.decode(idToken);
-      if (!payload || !payload.email) {
-        throw new Error('Payload inválido');
-      }
     } catch (err) {
-      throw AppError.badRequest('El idToken de Google no es válido');
+      // Ignore jwt decode error, will fallback below
+    }
+
+    if (!payload || !payload.email) {
+      try {
+        const fetchRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+          headers: { Authorization: `Bearer ${idToken}` },
+        });
+        if (fetchRes.ok) {
+          payload = await fetchRes.json();
+        }
+      } catch (err) {
+        console.error('Error fetching Google userinfo:', err.message);
+      }
+    }
+
+    if (!payload || !payload.email) {
+      throw AppError.badRequest('El token de Google no es válido o expiró');
     }
 
     const email = payload.email.toLowerCase();
