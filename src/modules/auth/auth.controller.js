@@ -11,6 +11,14 @@ class AuthController {
   login = catchAsync(async (req, res) => {
     const { email, password } = req.body;
     const result = await authService.login(email, password);
+    if (result?.accessToken) {
+      res.cookie('token', result.accessToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 24 * 60 * 60 * 1000,
+      });
+    }
     return success(res, result, 'Inicio de sesión exitoso');
   });
 
@@ -47,6 +55,14 @@ class AuthController {
   refreshToken = catchAsync(async (req, res) => {
     const { refreshToken } = req.body;
     const result = await authService.refreshToken(refreshToken);
+    if (result?.accessToken) {
+      res.cookie('token', result.accessToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 24 * 60 * 60 * 1000,
+      });
+    }
     return success(res, result, 'Token renovado exitosamente');
   });
 
@@ -54,6 +70,7 @@ class AuthController {
     const refreshToken = req.body?.refreshToken;
     const userId = req.user?.id;
     const result = await authService.logout(refreshToken, userId);
+    res.clearCookie('token');
     return success(res, null, result.message);
   });
 
@@ -77,12 +94,28 @@ class AuthController {
   verifyMagicLink = catchAsync(async (req, res) => {
     const token = req.query.token || req.body.token;
     const result = await authService.verifyMagicLink(token);
+    if (result?.accessToken) {
+      res.cookie('token', result.accessToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 24 * 60 * 60 * 1000,
+      });
+    }
     return success(res, result, 'Inicio de sesión exitoso');
   });
 
   googleLogin = catchAsync(async (req, res) => {
     const { idToken } = req.body;
     const result = await authService.googleLogin(idToken);
+    if (result?.accessToken) {
+      res.cookie('token', result.accessToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 24 * 60 * 60 * 1000,
+      });
+    }
     return success(res, result, 'Inicio de sesión con Google exitoso');
   });
 }
