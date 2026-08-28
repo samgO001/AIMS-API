@@ -26,14 +26,14 @@ class CalificacionRepository {
     }
 
     const gradesData = list.map(item => ({
-      subject: item.modulo.nombre,
-      grade: Number(item.nota),
+      subject: item.modulo ? item.modulo.nombre : 'Módulo General',
+      grade: Number(item.nota || 0),
     }));
 
     const notas = gradesData.map(g => g.grade);
     const suma = notas.reduce((acc, curr) => acc + curr, 0);
-    const promedio = Number((suma / notas.length).toFixed(1));
-    const notaMax = Math.max(...notas);
+    const promedio = notas.length > 0 ? Number((suma / notas.length).toFixed(1)) : 0;
+    const notaMax = notas.length > 0 ? Math.max(...notas) : 0;
     const materiaMax = gradesData.find(g => g.grade === notaMax)?.subject || 'N/A';
 
     return {
