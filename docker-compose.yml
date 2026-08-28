@@ -1,0 +1,39 @@
+services:
+  # ─── BACKEND API (Node.js / Express / Prisma) ───────────────────
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: aims-backend
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - NODE_ENV=development
+      - FRONTEND_URL=http://localhost:8081
+      - DATABASE_URL=postgresql://neondb_owner:npg_h7dN8kQOgqxT@ep-floral-heart-acnwfivw-pooler.sa-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require
+      - JWT_SECRET=your_jwt_secret_key_change_in_production
+      - JWT_EXPIRES_IN=24h
+      - GOOGLE_CLIENT_ID=801203695881-vjkbm79n28utn02fkiei3tmrieqmkd37.apps.googleusercontent.com
+      - SMTP_HOST=smtp.gmail.com
+      - SMTP_PORT=587
+      - SMTP_USER=juanes15342@gmail.com
+      - SMTP_PASS=vgaodeyjpneqilyr
+      - EMAIL_FROM=AIMS API <juanes15342@gmail.com>
+
+  # ─── FRONTEND (Expo / React Native Web) ──────────────────────────
+  frontend:
+    build:
+      context: ./frontend/MiProyecto
+      dockerfile: Dockerfile
+    container_name: aims-frontend
+    restart: always
+    ports:
+      - "8081:8081"
+    environment:
+      - EXPO_PUBLIC_API_URL=http://localhost:3000/api/v1
+      - EXPO_PUBLIC_GOOGLE_CLIENT_ID=801203695881-vjkbm79n28utn02fkiei3tmrieqmkd37.apps.googleusercontent.com
+      - GOOGLE_CLIENT_ID=801203695881-vjkbm79n28utn02fkiei3tmrieqmkd37.apps.googleusercontent.com
+    depends_on:
+      - backend
