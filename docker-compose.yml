@@ -25,7 +25,7 @@ services:
   # ─── FRONTEND (Expo / React Native Web) ──────────────────────────
   frontend:
     build:
-      context: ./frontend/MiProyecto
+      context: ./frontend/MiProyecto/MiProyecto
       dockerfile: Dockerfile
     container_name: aims-frontend
     restart: always
